@@ -113,6 +113,9 @@ statePositions = {
 boilerplate = open('boilerplate.html', 'r').read()
 
 for filename in os.listdir('originals/'):
+    if os.path.exists('html/' + filename.replace('.txt', '.html')):
+        continue
+
     month = int(filename[5:7])
     day = int(filename[8:10])
     frame = int(filename[11])
