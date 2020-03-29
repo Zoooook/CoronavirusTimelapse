@@ -16,16 +16,17 @@ def getChunk(text, cursor, strings):
         return text[start:end]
     return ''
 
-def parseNum(text, string1, string2):
-    index1 = text.find(string1)
-    if index1 > -1:
-        start = index1 + len(string1)
-        index2 = text[start:].find(string2)
-        if index2 > -1:
-            end = start + index2
-            num = text[start:end]
-            if num.replace(',','').isnumeric():
-                return num
+def parseNum(texts, string1, string2):
+    for text in texts:
+        index1 = text.find(string1)
+        if index1 > -1:
+            start = index1 + len(string1)
+            index2 = text[start:].find(string2)
+            if index2 > -1:
+                end = start + index2
+                num = text[start:end]
+                if num.replace(',','').isnumeric():
+                    return num
     return ''
 
 deathMap = {
@@ -121,7 +122,7 @@ for filename in os.listdir('originals/'):
     cursor = [0]
     states = {}
 
-    paragraph1 = getChunk(text, cursor, ['<p class="g-body ">', '</p>'])[2:-1]
+    paragraphs = [getChunk(text, cursor, ['<p class="g-body ">', '</p>'])[2:-1]]
 
     circles = []
     while True:
@@ -188,16 +189,11 @@ for filename in os.listdir('originals/'):
         trash = getChunk(text, cursor, ['<span class="mobile label', '</span>'])
         states[state] = getChunk(text, cursor, ['>', '</span>'])
 
-    paragraph2 = getChunk(text, cursor, ['<p class="g-body ">', '</p>'])[2:-1]
-    paragraph3 = getChunk(text, cursor, ['<p class="g-body ">', '</p>'])[2:-1]
+    while paragraphs[-1]:
+        paragraphs.append(getChunk(text, cursor, ['<p class="g-body ">', '</p>'])[2:-1])
 
-    cases = parseNum(paragraph1, ', at least ', ' p') or\
-            parseNum(paragraph2, ', at least ', ' p') or\
-            parseNum(paragraph3, ', at least ', ' p')
-    deaths = parseNum(paragraph1, ', according to a New York Times database, and at least ', ' patients with the virus have died.') or\
-             parseNum(paragraph2, ', according to a New York Times database, and at least ', ' patients with the virus have died.') or\
-             parseNum(paragraph3, ', according to a New York Times database, and at least ', ' patients with the virus have died.') or\
-             deathMap[filename]
+    cases = parseNum(paragraphs, ', at least ', ' p')
+    deaths = parseNum(paragraphs, ', according to a New York Times database, and at least ', ' patients with the virus have died.') or deathMap[filename]
 
     newText = boilerplate
 
