@@ -113,8 +113,8 @@ statePositions = {
 boilerplate = open('boilerplate.html', 'r').read()
 
 for filename in os.listdir('originals/'):
-    if os.path.exists('html/' + filename.replace('.txt', '.html')):
-        continue
+    #if os.path.exists('html/' + filename.replace('.txt', '.html')):
+    #    continue
 
     month = int(filename[5:7])
     day = int(filename[8:10])
@@ -141,10 +141,10 @@ for filename in os.listdir('originals/'):
             cx = (cx-50)*1.08+50
             cy = cy*1.08+1.706911263
             r *= 7/4
-        if frameIndex in [395,396] and round(cx,6) == 13.713056 and round(cy,6) == 7.296820: # fix Washington
+        if frameIndex in [395,396]      and round(cx,6) == 13.713056 and round(cy,6) ==  7.296820: # fix Washington
             cx = 12.307790654396314
             cy = 5.371074781233531
-        if frameIndex <= 398 and round(cx,6) == 1.875461 and round(cy,6) == 27.353114: # fix San Francisco
+        if frameIndex <= 398            and round(cx,6) ==  1.875461 and round(cy,6) == 27.353114: # fix San Francisco
             cx = 2.9438844722337123
             cy = 27.568193233040574
         if frameIndex in range(392,400) and round(cx,6) == 79.734663 and round(cy,6) == 57.291601: # fix Florida
@@ -153,11 +153,15 @@ for filename in os.listdir('originals/'):
         if frameIndex in range(399,405) and round(cx,6) == 71.888261 and round(cy,6) == 41.453826: # fix Georgia
             cx = 72.01207024960398
             cy = 42.079477155667746
-        if frameIndex in [420,421,422] and (round(cx,6) == 59.604496 and round(cy,6) == 53.472522 or round(cx,6) == 63.350684 and round(cy,6) == 51.372097) or\
+        if frameIndex in range(412,423) and round(cx,6) == 53.332299 and round(cy,6) == 31.082590: # fix Kansas City
+            cx = 53.23185825512697
+            cy = 31.63457756979662
+        if frameIndex in [420,421,422] and (round(cx,6) == 59.604496 and round(cy,6) == 53.472522 or\
+                                            round(cx,6) == 63.350684 and round(cy,6) == 51.372097) or\
            frameIndex in range(420,431) and round(cx,6) == 62.581748 and round(cy,6) == 53.588514 or\
            frameIndex in range(427,431) and round(cx,6) == 64.826036 and round(cy,6) == 52.436027: # Fix Louisiana
             skip = True
-        if round(cx,6) == 63.428247 and round(cy,6) == 52.174424: # fix New Orleans
+        if frameIndex in range(420,431) and round(cx,6) == 63.428247 and round(cy,6) == 52.174424: # fix New Orleans
             if frameIndex in [420,421,422]:
                 r = 1.1608186766243898
             if frameIndex in range(423,427):
