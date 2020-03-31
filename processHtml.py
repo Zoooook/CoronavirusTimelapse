@@ -146,7 +146,7 @@ for filename in os.listdir('originals/'):
             cx = 12.307790654396314
             cy = 5.371074781233531
 
-        if frameIndex <= 398            and round(cx,6) ==  1.875461 and round(cy,6) == 27.353114: # fix San Francisco
+        if frameIndex < 399             and round(cx,6) ==  1.875461 and round(cy,6) == 27.353114: # fix San Francisco
             cx = 2.9438844722337123
             cy = 27.568193233040574
 
@@ -162,7 +162,7 @@ for filename in os.listdir('originals/'):
             cx = 53.23185825512697
             cy = 31.63457756979662
 
-        if frameIndex < 429:
+        if frameIndex < 429: # .35 * sqrt(2170) = 16.304
             r *= 6/7
 
         if frameIndex in [420,421,422] and (round(cx,6) == 59.604496 and round(cy,6) == 53.472522 or\
@@ -181,7 +181,7 @@ for filename in os.listdir('originals/'):
             if frameIndex in [428,429,430]:
                 r = 1.5874507866387544
 
-        if frameIndex < 436:
+        if frameIndex < 436: # .3 * sqrt(3486) = 17.713
             r *= 5/6
 
         if frameIndex in range(416,440): # fix South Dakota
@@ -192,18 +192,20 @@ for filename in os.listdir('originals/'):
         if frameIndex in [440,441,442]  and round(cx,6) == 49.742321 and round(cy,6) == 20.284504:
             r = .5
 
-        if frameIndex < 449:
+        if frameIndex < 449: # .25 * sqrt(8317) = 22.799
             r *= 3/5
 
-        if frameIndex < 460:
+        if frameIndex < 460: # .15 * sqrt(21365) = 21.925
             r *= 11/15
 
         if frameIndex < 466:
             cx = (cx-50)*0.9851851852+50
             cy = cy*0.9851851852+0.4752875743
 
-        if frameIndex < 468:
+        if frameIndex < 468: # .11 * sqrt(41701) = 22.463
             r *= 5/11
+
+        # .05 * sqrt(200000) = 22.361
 
         if not skip:
             circles.append({'cx': str(cx), 'cy': str(cy), 'r': str(r)})
@@ -219,7 +221,9 @@ for filename in os.listdir('originals/'):
         paragraphs.append(getChunk(text, cursor, ['<p class="g-body ">', '</p>'])[2:-1])
 
     cases = parseNum(paragraphs, ', at least ', ' p')
-    deaths = parseNum(paragraphs, ', according to a New York Times database, and at least ', ' patients with the virus have died.') or deathMap[filename]
+    deaths = parseNum(paragraphs, ', according to a New York Times database, and at least ', ' patients with the virus have died.') or\
+             parseNum(paragraphs, ', according to a New York Times database. At least ', ' patients with the virus have died.') or\
+             deathMap[filename]
 
     newText = boilerplate
 
