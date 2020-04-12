@@ -239,7 +239,7 @@ if lastUpdated:
         image.save('frames/frame' + str(i).zfill(4) + '.png')
 
 if anyUpdated:
-    os.system('ffmpeg -f image2 -r 2 -i frames/frame%04d.png -r 2 -c:a copy -c:v libx264 -crf 12 -preset veryslow CoronavirusTimelapse.mp4 -y')
+    os.system('ffmpeg -f image2 -r 2 -i frames/frame%04d.png -r 2 -c:a copy -c:v libx264 -crf 16 -preset veryslow CoronavirusTimelapse.mp4 -y')
 
 missing = sorted(list(missing))
 for key in missing:
