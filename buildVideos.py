@@ -185,7 +185,7 @@ for date in dates:
 
     month = int(date[5:7])
     day = int(date[8:10])
-    html = open('boilerplate.html', 'r').read()
+    html = open('map.html', 'r').read()
 
     for county in data[date]['counties']:
         if county not in missing:
