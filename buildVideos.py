@@ -7,10 +7,21 @@ from math import sqrt
 from selenium import webdriver
 from PIL import Image
 
-try: os.mkdir('html')
-except: pass
-try: os.mkdir('frames')
-except: pass
+def makeDir(dir):
+    try: os.mkdir(dir)
+    except: pass
+
+makeDir('videos')
+dirs = ['html', 'frames']
+subDirs = ['totalCases', 'newCases', 'totalDeaths', 'newDeaths']
+for dir in dirs:
+    makeDir(dir)
+    for subDir in subDirs:
+        makeDir(dir + '/' + subDir)
+
+options = webdriver.ChromeOptions()
+options.add_argument('--kiosk')
+options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
 stateMap = {
     'Guam'                    : {'code': 'GU', 'displayName': '', 'left': '-10', 'top': '-10'},
@@ -178,70 +189,75 @@ for row in csvData[1:]:
     data[today]['totalDeaths'] += data[today]['counties'][key]['totalDeaths']
     data[today]['newDeaths']   += data[today]['counties'][key]['newDeaths']
 
-anyUpdated = False
-i = 0
-for date in dates:
-    i += 1
-
-    month = int(date[5:7])
-    day = int(date[8:10])
-    html = open('map.html', 'r').read()
-
-    for county in data[date]['counties']:
-        if county not in missing:
-            r = sqrt(data[date]['counties'][county]['totalCases'])/50
-            html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="svelte-12ai9yo"></circle>\n'
-
-    html += '\n</svg>\n\n'
-
-    for state in data[date]['states']:
-        html += '<div class="point svelte-3fv2ao" style="left: '+ stateMap[state]['left'] + '%; top: ' + stateMap[state]['top'] + '%">'
-        html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-        html += '<span class="label">' + stateMap[state]['displayName'] + '</span><span class="count">' + str(data[date]['states'][state]['totalCases']) + '</span></div></div>\n'
-
-    html += '\n<div class="point svelte-3fv2ao" style="left: 71.5%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + monthMap[month] + str(day) + '</span></div>\n'
-    html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Cases</span><span class="count" style="font-size: 2em">' + str(data[date]['totalCases']) + '</span></div>\n'
-    html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Deaths</span><span class="count" style="font-size: 2em">' + str(data[date]['totalDeaths']) + '</span></div>\n\n</div></div>'
-
-    htmlFilename = 'html/' + date + '.html'
-    imageFilename = 'frames/frame' + str(i).zfill(4) + '.png'
-
-    try:
-        with open(htmlFilename, 'r') as oldFile:
-            oldHtml = oldFile.read()
-    except:
-        oldHtml = ''
-
-    lastUpdated = False
-    if html != oldHtml:
-        lastUpdated = True
-        anyUpdated = True
-
-        with open(htmlFilename, 'w') as newFile:
-            newFile.write(html)
-
-        options = webdriver.ChromeOptions()
-        options.add_argument('--kiosk')
-        options.add_experimental_option('excludeSwitches', ['enable-automation'])
-        driver = webdriver.Chrome('chromedriver', options = options)
-
-        driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
-        driver.save_screenshot(imageFilename)
-        driver.quit()
-
-        image = Image.open(imageFilename)
-        image = image.crop((10, 30, 1610, 1030))
-        image.save(imageFilename)
-
-if lastUpdated:
-    for j in range(4):
-        i += 1
-        image.save('frames/frame' + str(i).zfill(4) + '.png')
-
-if anyUpdated:
-    os.system('ffmpeg -f image2 -r 2 -i frames/frame%04d.png -r 2 -c:a copy -c:v libx264 -crf 16 -preset veryslow CoronavirusTimelapse.mp4 -y')
-
-missing = sorted(list(missing))
-for key in missing:
-    if key[2:] != ':Unknown':
+missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
+if len(missingList):
+    for key in missingList:
         print('Missing', key)
+    quit()
+
+types = {
+    'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 3},
+    'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 10},
+    'newCases':    {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 10},
+    'newDeaths':   {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 25},
+}
+
+for type in types:
+    types[type]['anyUpdated'] = False
+    i = 0
+    for date in dates:
+        i += 1
+
+        month = int(date[5:7])
+        day = int(date[8:10])
+        html = open('map.html', 'r').read()
+
+        for county in data[date]['counties']:
+            if county not in missing and data[date]['counties'][county][type] > 0:
+                r = sqrt(data[date]['counties'][county][type]) * types[type]['scale'] / 100
+                html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="svelte-12ai9yo"></circle>\n'
+
+        html += '\n</svg>\n\n'
+
+        for state in data[date]['states']:
+            if data[date]['states'][state][type] > 0:
+                html += '<div class="point svelte-3fv2ao" style="left: '+ stateMap[state]['left'] + '%; top: ' + stateMap[state]['top'] + '%">'
+                html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
+                html += '<span class="label">' + stateMap[state]['displayName'] + '</span><span class="count">' + str(data[date]['states'][state][type]) + '</span></div></div>\n'
+
+        html += '\n<div class="point svelte-3fv2ao" style="left: 71.5%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + monthMap[month] + str(day) + '</span></div>\n'
+        html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Cases</span><span class="count" style="font-size: 2em">' + str(data[date][types[type]['cases']]) + '</span></div>\n'
+        html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Deaths</span><span class="count" style="font-size: 2em">' + str(data[date][types[type]['deaths']]) + '</span></div>\n\n</div></div>'
+
+        htmlFilename = 'html/' + type + '/' + date + '.html'
+        imageFilename = 'frames/' + type + '/frame' + str(i).zfill(4) + '.png'
+
+        try:
+            with open(htmlFilename, 'r') as oldFile:
+                oldHtml = oldFile.read()
+        except:
+            oldHtml = ''
+
+        types[type]['lastUpdated'] = False
+        if html != oldHtml:
+            types[type]['lastUpdated'] = True
+            types[type]['anyUpdated'] = True
+
+            with open(htmlFilename, 'w') as newFile:
+                newFile.write(html)
+
+            driver = webdriver.Chrome('chromedriver', options = options)
+            driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
+            driver.save_screenshot(imageFilename)
+            driver.quit()
+
+            image = Image.open(imageFilename)
+            image = image.crop((10, 30, 1610, 1030))
+            image.save(imageFilename)
+
+    if types[type]['lastUpdated']:
+        for j in range(i+1, i+5):
+            image.save('frames/' + type + '/frame' + str(j).zfill(4) + '.png')
+
+    if types[type]['anyUpdated']:
+        os.system('ffmpeg -f image2 -r 2 -i frames/' + type + '/frame%04d.png -r 2 -c:a copy -c:v libx264 -crf 16 -preset veryslow videos/' + type + '.mp4 -y')
