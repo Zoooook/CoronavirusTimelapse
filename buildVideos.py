@@ -1,10 +1,10 @@
 fpd = 1
 
 types = {
-    'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 3},
-    'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 10},
-    'newCases':    {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 10},
-    'newDeaths':   {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 25},
+    'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'circles': 'red',   'labels': 'black', 'scale': 3},
+    'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'circles': 'black', 'labels': 'aqua',  'scale': 10},
+    'newCases':    {'cases': 'newCases',   'deaths': 'newDeaths',   'circles': 'red',   'labels': 'black', 'scale': 10},
+    'newDeaths':   {'cases': 'newCases',   'deaths': 'newDeaths',   'circles': 'black', 'labels': 'aqua',  'scale': 25},
 }
 
 import os
@@ -194,6 +194,10 @@ for row in csvData[1:]:
     if key in data[yesterday]['counties']:
         data[today]['counties'][key]['newCases']  -= data[yesterday]['counties'][key]['totalCases']
         data[today]['counties'][key]['newDeaths'] -= data[yesterday]['counties'][key]['totalDeaths']
+        if data[today]['counties'][key]['newCases'] < 0:
+            data[today]['counties'][key]['newCases'] = 0
+        if data[today]['counties'][key]['newDeaths'] < 0:
+            data[today]['counties'][key]['newDeaths'] = 0
     data[today]['states'][state]['totalCases']  += data[today]['counties'][key]['totalCases']
     data[today]['states'][state]['newCases']    += data[today]['counties'][key]['newCases']
     data[today]['states'][state]['totalDeaths'] += data[today]['counties'][key]['totalDeaths']
@@ -246,7 +250,7 @@ for type in types:
         for county in data[date]['counties']:
             if county not in missing and data[date]['counties'][county][type] > 0:
                 r = sqrt(data[date]['counties'][county][type]) * types[type]['scale'] / 100
-                html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="svelte-12ai9yo"></circle>\n'
+                html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + types[type]['circles'] + '"></circle>\n'
 
         html += '\n</svg>\n\n'
 
@@ -254,11 +258,11 @@ for type in types:
             if data[date]['states'][state][type] > 0:
                 html += '<div class="point svelte-3fv2ao" style="left: '+ stateMap[state]['left'] + '%; top: ' + stateMap[state]['top'] + '%">'
                 html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-                html += '<span class="label">' + stateMap[state]['displayName'] + '</span><span class="count">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
+                html += '<span class="label ' + types[type]['labels'] + '">' + stateMap[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
 
         html += '\n<div class="point svelte-3fv2ao" style="left: 71.5%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + monthMap[month] + str(day) + '</span></div>\n'
-        html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Cases</span><span class="count" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
-        html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Deaths</span><span class="count" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
+        html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
+        html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
 
         htmlFilename = 'html/' + type + '/' + date + '.html'
         imageFilename = 'frames/' + type + '/frame' + str(i).zfill(4) + '.png'
