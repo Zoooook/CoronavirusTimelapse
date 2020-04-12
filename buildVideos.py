@@ -4,14 +4,18 @@ import codecs
 import csv
 import json
 from math import sqrt
+from selenium import webdriver
+from PIL import Image
 
 try: os.mkdir('html')
 except: pass
+try: os.mkdir('frames')
+except: pass
 
 stateMap = {
-    'Guam'                    : {'code': 'GU', 'displayName': '', 'left': '0', 'top': '0'},
-    'Northern Mariana Islands': {'code': 'MP', 'displayName': '', 'left': '0', 'top': '0'},
-    'Virgin Islands'          : {'code': 'VI', 'displayName': '', 'left': '0', 'top': '0'},
+    'Guam'                    : {'code': 'GU', 'displayName': '', 'left': '-10', 'top': '-10'},
+    'Northern Mariana Islands': {'code': 'MP', 'displayName': '', 'left': '-10', 'top': '-10'},
+    'Virgin Islands'          : {'code': 'VI', 'displayName': '', 'left': '-10', 'top': '-10'},
 
     'Alabama'                 : {'code': 'AL', 'displayName': 'Ala.'  , 'left': '68.802', 'top': '71.966'},
     'Alaska'                  : {'code': 'AK', 'displayName': 'Alaska', 'left': '9.837' , 'top': '85.217'},
@@ -52,7 +56,7 @@ stateMap = {
     'Oklahoma'                : {'code': 'OK', 'displayName': 'Okla.' , 'left': '49.016', 'top': '63.471'},
     'Oregon'                  : {'code': 'OR', 'displayName': 'Ore.'  , 'left': '10.562', 'top': '23.196'},
     'Pennsylvania'            : {'code': 'PA', 'displayName': 'Pa.'   , 'left': '83.444', 'top': '35.860'},
-    'Puerto Rico'             : {'code': 'PR', 'displayName': '', 'left': '0', 'top': '0'},
+    'Puerto Rico'             : {'code': 'PR', 'displayName': 'P.R.'  , 'left': '95.5'  , 'top': '90.5'  },
     'Rhode Island'            : {'code': 'RI', 'displayName': 'R.I.'  , 'left': '93.770', 'top': '38.144'},
     'South Carolina'          : {'code': 'SC', 'displayName': 'S.C.'  , 'left': '79.358', 'top': '64.315'},
     'South Dakota'            : {'code': 'SD', 'displayName': 'S.D.'  , 'left': '44.584', 'top': '30.590'},
@@ -111,8 +115,20 @@ keyMap = {
 }
 
 missing = {}
-dates = ['2020-01-20']
-data = {'2020-01-20': {'counties': {}, 'states': {}}}
+dates = []
+data = {}
+for day in range(1, 21):
+    date = '2020-01-' + str(day).zfill(2)
+    dates.append(date)
+    data[date] = {
+        'counties':    {},
+        'states':      {},
+        'totalCases':  0,
+        'newCases':    0,
+        'totalDeaths': 0,
+        'newDeaths':   0,
+    }
+
 for row in csvData[1:]:
     state = stateMap[row[2]]['code']
     key = state + ':' + row[1]
@@ -162,7 +178,11 @@ for row in csvData[1:]:
     data[today]['totalDeaths'] += data[today]['counties'][key]['totalDeaths']
     data[today]['newDeaths']   += data[today]['counties'][key]['newDeaths']
 
-for date in dates[-1:]:
+anyUpdated = False
+i = 0
+for date in dates:
+    i += 1
+
     month = int(date[5:7])
     day = int(date[8:10])
     html = open('boilerplate.html', 'r').read()
@@ -183,12 +203,45 @@ for date in dates[-1:]:
     html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Cases</span><span class="count" style="font-size: 2em">' + str(data[date]['totalCases']) + '</span></div>\n'
     html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Deaths</span><span class="count" style="font-size: 2em">' + str(data[date]['totalDeaths']) + '</span></div>\n\n</div></div>'
 
-    newFile = open('html/' + date + '.html', 'w')
-    newFile.write(html)
-    newFile.close()
+    htmlFilename = 'html/' + date + '.html'
+    imageFilename = 'frames/frame' + str(i).zfill(4) + '.png'
+
+    try:
+        with open(htmlFilename, 'r') as oldFile:
+            oldHtml = oldFile.read()
+    except:
+        oldHtml = ''
+
+    lastUpdated = False
+    if html != oldHtml:
+        lastUpdated = True
+        anyUpdated = True
+
+        with open(htmlFilename, 'w') as newFile:
+            newFile.write(html)
+
+        options = webdriver.ChromeOptions()
+        options.add_argument('--kiosk')
+        options.add_experimental_option('excludeSwitches', ['enable-automation'])
+        driver = webdriver.Chrome('chromedriver', options = options)
+
+        driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
+        driver.save_screenshot(imageFilename)
+        driver.quit()
+
+        image = Image.open(imageFilename)
+        image = image.crop((10, 30, 1610, 1030))
+        image.save(imageFilename)
+
+if lastUpdated:
+    for j in range(4):
+        i += 1
+        image.save('frames/frame' + str(i).zfill(4) + '.png')
+
+if anyUpdated:
+    os.system('ffmpeg -f image2 -r 2 -i frames/frame%04d.png -r 2 -c:a copy -c:v libx264 -crf 12 -preset veryslow CoronavirusTimelapse.mp4 -y')
 
 missing = sorted(list(missing))
 for key in missing:
     if key[2:] != ':Unknown':
         print('Missing', key)
-

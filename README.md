@@ -1,1 +1,3 @@
-NYTimes changed their format, so I am rewriting this from scratch. Look in the old/ folder to see the previous version.
+This uses [New York Times data](https://github.com/nytimes/covid-19-data) to build a timelapse of the Coronavirus spread across the U.S., using a map format modified from an old version of [their page](https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html).
+
+To run this locally you'll need the [Chrome driver](https://chromedriver.chromium.org/downloads) and [ffmpeg](https://www.ffmpeg.org/download.html) on your path.
