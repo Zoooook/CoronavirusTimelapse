@@ -23,6 +23,9 @@ options = webdriver.ChromeOptions()
 options.add_argument('--kiosk')
 options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
+def formatNum(num):
+    return f'{num:,}'
+
 stateMap = {
     'Guam'                    : {'code': 'GU', 'displayName': '', 'left': '-10', 'top': '-10'},
     'Northern Mariana Islands': {'code': 'MP', 'displayName': '', 'left': '-10', 'top': '-10'},
@@ -223,11 +226,11 @@ for type in types:
             if data[date]['states'][state][type] > 0:
                 html += '<div class="point svelte-3fv2ao" style="left: '+ stateMap[state]['left'] + '%; top: ' + stateMap[state]['top'] + '%">'
                 html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-                html += '<span class="label">' + stateMap[state]['displayName'] + '</span><span class="count">' + str(data[date]['states'][state][type]) + '</span></div></div>\n'
+                html += '<span class="label">' + stateMap[state]['displayName'] + '</span><span class="count">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
 
         html += '\n<div class="point svelte-3fv2ao" style="left: 71.5%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + monthMap[month] + str(day) + '</span></div>\n'
-        html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Cases</span><span class="count" style="font-size: 2em">' + str(data[date][types[type]['cases']]) + '</span></div>\n'
-        html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Deaths</span><span class="count" style="font-size: 2em">' + str(data[date][types[type]['deaths']]) + '</span></div>\n\n</div></div>'
+        html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Cases</span><span class="count" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
+        html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label" style="font-size: 2em">Deaths</span><span class="count" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
 
         htmlFilename = 'html/' + type + '/' + date + '.html'
         imageFilename = 'frames/' + type + '/frame' + str(i).zfill(4) + '.png'
