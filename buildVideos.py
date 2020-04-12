@@ -1,4 +1,14 @@
+fpd = 1
+
+types = {
+    'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 3},
+    'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 10},
+    'newCases':    {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 10},
+    'newDeaths':   {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 25},
+}
+
 import os
+import shutil
 import urllib.request
 import codecs
 import csv
@@ -23,6 +33,8 @@ options = webdriver.ChromeOptions()
 options.add_argument('--kiosk')
 options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
+fps = fpd * 2
+
 def formatNum(num):
     return f'{num:,}'
 
@@ -30,7 +42,6 @@ stateMap = {
     'Guam'                    : {'code': 'GU', 'displayName': '', 'left': '-10', 'top': '-10'},
     'Northern Mariana Islands': {'code': 'MP', 'displayName': '', 'left': '-10', 'top': '-10'},
     'Virgin Islands'          : {'code': 'VI', 'displayName': '', 'left': '-10', 'top': '-10'},
-
     'Alabama'                 : {'code': 'AL', 'displayName': 'Ala.'  , 'left': '68.802', 'top': '71.966'},
     'Alaska'                  : {'code': 'AK', 'displayName': 'Alaska', 'left': '9.837' , 'top': '85.217'},
     'Arizona'                 : {'code': 'AZ', 'displayName': 'Ariz.' , 'left': '22.387', 'top': '63.429'},
@@ -196,19 +207,33 @@ missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
     for key in missingList:
         print('Missing', key)
-    quit()
+    exit()
 
+
+
+try:
+    with open('lastFpd.json') as fpdFile:
+        lastFpd = json.load(fpdFile)
+except:
+    lastFpd = {}
+try:
+    with open('lastFpd.json') as fpdFile:
+        lastFpd = json.load(fpdFile)
+except:
+    lastFpd = {}
 with open('map.html', 'r') as mapFile:
     map = mapFile.read()
 
-types = {
-    'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 3},
-    'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 10},
-    'newCases':    {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 10},
-    'newDeaths':   {'cases': 'newCases',   'deaths': 'newDeaths',   'scale': 25},
-}
-
 for type in types:
+    if type not in lastFpd or lastFpd[type] != fpd:
+        for filename in os.listdir('html/' + type):
+            os.remove('html/' + type + '/' + filename)
+        for filename in os.listdir('frames/' + type):
+            os.remove('frames/' + type + '/' + filename)
+        lastFpd[type] = fpd
+        with open('lastFpd.json', 'w') as fpdFile:
+            json.dump(lastFpd, fpdFile)
+
     types[type]['anyUpdated'] = False
     i = 0
     for date in dates:
@@ -244,9 +269,7 @@ for type in types:
         except:
             oldHtml = ''
 
-        types[type]['lastUpdated'] = False
-        if html != oldHtml:
-            types[type]['lastUpdated'] = True
+        if html != oldHtml or not os.path.exists(imageFilename):
             types[type]['anyUpdated'] = True
 
             with open(htmlFilename, 'w') as newFile:
@@ -254,16 +277,24 @@ for type in types:
 
             driver = webdriver.Chrome('chromedriver', options = options)
             driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
-            driver.save_screenshot(imageFilename)
+            driver.save_screenshot('frames/temp.png')
             driver.quit()
 
-            image = Image.open(imageFilename)
+            image = Image.open('frames/temp.png')
             image = image.crop((10, 30, 1610, 1030))
             image.save(imageFilename)
+            os.remove('frames/temp.png')
 
-    if types[type]['lastUpdated']:
-        for j in range(i+1, i+5):
-            image.save('frames/' + type + '/frame' + str(j).zfill(4) + '.png')
+    for j in range(i+1, i+1+fps*2):
+        copyFilename = 'frames/' + type + '/frame' + str(j).zfill(4) + '.png'
+        if not os.path.exists(copyFilename):
+            shutil.copyfile(imageFilename, copyFilename)
+            types[type]['anyUpdated'] = True
+
+    badFilename = 'frames/' + type + '/frame' + str(i+1+fps*2).zfill(4) + '.png'
+    if os.path.exists(badFilename):
+        print('Too many frames:', badFilename)
+        exit()
 
     if types[type]['anyUpdated']:
-        os.system('ffmpeg -f image2 -r 2 -i frames/' + type + '/frame%04d.png -r 2 -c:a copy -c:v libx264 -crf 16 -preset veryslow videos/' + type + '.mp4 -y')
+        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i frames/' + type + '/frame%04d.png -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow videos/' + type + '.mp4 -y')
