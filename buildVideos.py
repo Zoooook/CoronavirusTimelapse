@@ -198,6 +198,9 @@ if len(missingList):
         print('Missing', key)
     quit()
 
+with open('map.html', 'r') as mapFile:
+    map = mapFile.read()
+
 types = {
     'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 3},
     'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'scale': 10},
@@ -213,8 +216,8 @@ for type in types:
 
         month = int(date[5:7])
         day = int(date[8:10])
-        html = open('map.html', 'r').read()
 
+        html = map
         for county in data[date]['counties']:
             if county not in missing and data[date]['counties'][county][type] > 0:
                 r = sqrt(data[date]['counties'][county][type]) * types[type]['scale'] / 100
