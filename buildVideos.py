@@ -1,11 +1,11 @@
-fpd = 1
+framesPerDay = 1
 
-types = {
-    'totalCases':  {'cases': 'totalCases', 'deaths': 'totalDeaths', 'circles': 'red',   'labels': 'black', 'scale': 3},
-    'totalDeaths': {'cases': 'totalCases', 'deaths': 'totalDeaths', 'circles': 'black', 'labels': 'aqua',  'scale': 10},
-    'newCases':    {'cases': 'newCases',   'deaths': 'newDeaths',   'circles': 'red',   'labels': 'black', 'scale': 10},
-    'newDeaths':   {'cases': 'newCases',   'deaths': 'newDeaths',   'circles': 'black', 'labels': 'aqua',  'scale': 25},
-}
+buildVideos = [
+    'Total Cases',
+    'Total Deaths',
+    'New Cases',
+    'New Deaths',
+]
 
 import os
 import shutil
@@ -17,90 +17,94 @@ from math import sqrt
 from selenium import webdriver
 from PIL import Image
 
+def formatNum(num):
+    return f'{num:,}'
+
 def makeDir(dir):
     try: os.mkdir(dir)
     except: pass
 
 makeDir('videos')
 dirs = ['html', 'frames']
-subDirs = ['totalCases', 'newCases', 'totalDeaths', 'newDeaths']
 for dir in dirs:
     makeDir(dir)
-    for subDir in subDirs:
+    for subDir in buildVideos:
         makeDir(dir + '/' + subDir)
 
 options = webdriver.ChromeOptions()
 options.add_argument('--kiosk')
 options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
-fps = fpd * 2
-
-def formatNum(num):
-    return f'{num:,}'
-
-stateMap = {
-    'Guam'                    : {'code': 'GU', 'displayName': '', 'left': '-10', 'top': '-10'},
-    'Northern Mariana Islands': {'code': 'MP', 'displayName': '', 'left': '-10', 'top': '-10'},
-    'Virgin Islands'          : {'code': 'VI', 'displayName': '', 'left': '-10', 'top': '-10'},
-    'Alabama'                 : {'code': 'AL', 'displayName': 'Ala.'  , 'left': '68.802', 'top': '71.966'},
-    'Alaska'                  : {'code': 'AK', 'displayName': 'Alaska', 'left': '9.837' , 'top': '85.217'},
-    'Arizona'                 : {'code': 'AZ', 'displayName': 'Ariz.' , 'left': '22.387', 'top': '63.429'},
-    'Arkansas'                : {'code': 'AR', 'displayName': 'Ark.'  , 'left': '58.912', 'top': '62.516'},
-    'California'              : {'code': 'CA', 'displayName': 'Calif.', 'left': '8.285' , 'top': '49.761'},
-    'Colorado'                : {'code': 'CO', 'displayName': 'Colo.' , 'left': '33.762', 'top': '45.511'},
-    'Connecticut'             : {'code': 'CT', 'displayName': 'Conn.' , 'left': '90.164', 'top': '32.030'},
-    'Delaware'                : {'code': 'DE', 'displayName': 'Del.'  , 'left': '87.418', 'top': '43.112'},
-    'District of Columbia'    : {'code': 'DC', 'displayName': 'D.C.'  , 'left': '84.784', 'top': '43.994'},
-    'Florida'                 : {'code': 'FL', 'displayName': 'Fla.'  , 'left': '80.872', 'top': '86.593'},
-    'Georgia'                 : {'code': 'GA', 'displayName': 'Ga.'   , 'left': '76.596', 'top': '71.130'},
-    'Hawaii'                  : {'code': 'HI', 'displayName': 'Hawaii', 'left': '31.982', 'top': '91.832'},
-    'Idaho'                   : {'code': 'ID', 'displayName': 'Idaho' , 'left': '20.128', 'top': '25.668'},
-    'Illinois'                : {'code': 'IL', 'displayName': 'Ill.'  , 'left': '62.597', 'top': '42.323'},
-    'Indiana'                 : {'code': 'IN', 'displayName': 'Ind.'  , 'left': '69.221', 'top': '41.697'},
-    'Iowa'                    : {'code': 'IA', 'displayName': 'Iowa'  , 'left': '56.056', 'top': '38.288'},
-    'Kansas'                  : {'code': 'KS', 'displayName': 'Kan.'  , 'left': '46.639', 'top': '48.776'},
-    'Kentucky'                : {'code': 'KY', 'displayName': 'Ky.'   , 'left': '71.014', 'top': '51.587'},
-    'Louisiana'               : {'code': 'LA', 'displayName': 'La.'   , 'left': '58.698', 'top': '76.948'},
-    'Maine'                   : {'code': 'ME', 'displayName': 'Maine' , 'left': '93.879', 'top': '16.761'},
-    'Maryland'                : {'code': 'MD', 'displayName': 'Md.'   , 'left': '86.102', 'top': '42.557'},
-    'Massachusetts'           : {'code': 'MA', 'displayName': 'Mass.' , 'left': '96.120', 'top': '27.532'},
-    'Michigan'                : {'code': 'MI', 'displayName': 'Mich.' , 'left': '68.261', 'top': '28.078'},
-    'Minnesota'               : {'code': 'MN', 'displayName': 'Minn.' , 'left': '53.175', 'top': '20.787'},
-    'Mississippi'             : {'code': 'MS', 'displayName': 'Miss.' , 'left': '63.942', 'top': '72.460'},
-    'Missouri'                : {'code': 'MO', 'displayName': 'Mo.'   , 'left': '58.628', 'top': '52.435'},
-    'Montana'                 : {'code': 'MT', 'displayName': 'Mont.' , 'left': '28.278', 'top': '17.579'},
-    'Nebraska'                : {'code': 'NE', 'displayName': 'Neb.'  , 'left': '44.346', 'top': '39.597'},
-    'Nevada'                  : {'code': 'NV', 'displayName': 'Nev.'  , 'left': '14.774', 'top': '43.529'},
-    'New Hampshire'           : {'code': 'NH', 'displayName': 'N.H.'  , 'left': '91.749', 'top': '25.425'},
-    'New Jersey'              : {'code': 'NJ', 'displayName': 'N.J.'  , 'left': '88.770', 'top': '38.342'},
-    'New Mexico'              : {'code': 'NM', 'displayName': 'N.M.'  , 'left': '34.067', 'top': '62.357'},
-    'New York'                : {'code': 'NY', 'displayName': 'N.Y.'  , 'left': '86.044', 'top': '28.311'},
-    'North Carolina'          : {'code': 'NC', 'displayName': 'N.C.'  , 'left': '85.559', 'top': '56.056'},
-    'North Dakota'            : {'code': 'ND', 'displayName': 'N.D.'  , 'left': '43.192', 'top': '17.528'},
-    'Ohio'                    : {'code': 'OH', 'displayName': 'Ohio'  , 'left': '73.940', 'top': '41.276'},
-    'Oklahoma'                : {'code': 'OK', 'displayName': 'Okla.' , 'left': '49.016', 'top': '63.471'},
-    'Oregon'                  : {'code': 'OR', 'displayName': 'Ore.'  , 'left': '10.562', 'top': '23.196'},
-    'Pennsylvania'            : {'code': 'PA', 'displayName': 'Pa.'   , 'left': '83.444', 'top': '35.860'},
-    'Puerto Rico'             : {'code': 'PR', 'displayName': 'P.R.'  , 'left': '95.5'  , 'top': '90.5'  },
-    'Rhode Island'            : {'code': 'RI', 'displayName': 'R.I.'  , 'left': '93.770', 'top': '38.144'},
-    'South Carolina'          : {'code': 'SC', 'displayName': 'S.C.'  , 'left': '79.358', 'top': '64.315'},
-    'South Dakota'            : {'code': 'SD', 'displayName': 'S.D.'  , 'left': '44.584', 'top': '30.590'},
-    'Tennessee'               : {'code': 'TN', 'displayName': 'Tenn.' , 'left': '69.876', 'top': '58.795'},
-    'Texas'                   : {'code': 'TX', 'displayName': 'Texas' , 'left': '43.431', 'top': '74.315'},
-    'Utah'                    : {'code': 'UT', 'displayName': 'Utah'  , 'left': '24.340', 'top': '44.421'},
-    'Vermont'                 : {'code': 'VT', 'displayName': 'Vt.'   , 'left': '89.334', 'top': '21.275'},
-    'Virginia'                : {'code': 'VA', 'displayName': 'Va.'   , 'left': '82.560', 'top': '50.150'},
-    'Washington'              : {'code': 'WA', 'displayName': 'Wash.' , 'left': '12.023', 'top': '12.765'},
-    'West Virginia'           : {'code': 'WV', 'displayName': 'W.Va.' , 'left': '78.881', 'top': '46.828'},
-    'Wisconsin'               : {'code': 'WI', 'displayName': 'Wis.'  , 'left': '63.102', 'top': '30.758'},
-    'Wyoming'                 : {'code': 'WY', 'displayName': 'Wyo.'  , 'left': '32.081', 'top': '32.285'},
+types = {
+    'Total Cases':  {'cases': 'Total Cases', 'deaths': 'Total Deaths', 'circles': 'red',   'labels': 'black', 'scale': 3},
+    'Total Deaths': {'cases': 'Total Cases', 'deaths': 'Total Deaths', 'circles': 'black', 'labels': 'aqua',  'scale': 10},
+    'New Cases':    {'cases': 'New Cases',   'deaths': 'New Deaths',   'circles': 'red',   'labels': 'black', 'scale': 10},
+    'New Deaths':   {'cases': 'New Cases',   'deaths': 'New Deaths',   'circles': 'black', 'labels': 'aqua',  'scale': 25},
 }
 
-stateKeys = []
-for state in stateMap:
-    stateKeys.append(state)
-for state in stateKeys:
-    stateMap[stateMap[state]['code']] = stateMap[state]
+states = {
+    'AL': {'name': 'Alabama'},
+    'AK': {'name': 'Alaska'},
+    'AZ': {'name': 'Arizona'},
+    'AR': {'name': 'Arkansas'},
+    'CA': {'name': 'California'},
+    'CO': {'name': 'Colorado'},
+    'CT': {'name': 'Connecticut'},
+    'DE': {'name': 'Delaware'},
+    'FL': {'name': 'Florida'},
+    'GA': {'name': 'Georgia'},
+    'HI': {'name': 'Hawaii'},
+    'ID': {'name': 'Idaho'},
+    'IL': {'name': 'Illinois'},
+    'IN': {'name': 'Indiana'},
+    'IA': {'name': 'Iowa'},
+    'KS': {'name': 'Kansas'},
+    'KY': {'name': 'Kentucky'},
+    'LA': {'name': 'Louisiana'},
+    'ME': {'name': 'Maine'},
+    'MD': {'name': 'Maryland'},
+    'MA': {'name': 'Massachusetts'},
+    'MI': {'name': 'Michigan'},
+    'MN': {'name': 'Minnesota'},
+    'MS': {'name': 'Mississippi'},
+    'MO': {'name': 'Missouri'},
+    'MT': {'name': 'Montana'},
+    'NE': {'name': 'Nebraska'},
+    'NV': {'name': 'Nevada'},
+    'NH': {'name': 'New Hampshire'},
+    'NJ': {'name': 'New Jersey'},
+    'NM': {'name': 'New Mexico'},
+    'NY': {'name': 'New York'},
+    'NC': {'name': 'North Carolina'},
+    'ND': {'name': 'North Dakota'},
+    'OH': {'name': 'Ohio'},
+    'OK': {'name': 'Oklahoma'},
+    'OR': {'name': 'Oregon'},
+    'PA': {'name': 'Pennsylvania'},
+    'RI': {'name': 'Rhode Island'},
+    'SC': {'name': 'South Carolina'},
+    'SD': {'name': 'South Dakota'},
+    'TN': {'name': 'Tennessee'},
+    'TX': {'name': 'Texas'},
+    'UT': {'name': 'Utah'},
+    'VT': {'name': 'Vermont'},
+    'VA': {'name': 'Virginia'},
+    'WA': {'name': 'Washington'},
+    'WV': {'name': 'West Virginia'},
+    'WI': {'name': 'Wisconsin'},
+    'WY': {'name': 'Wyoming'},
+    'DC': {'name': 'District of Columbia', 'displayName': 'D.C.'},
+    'PR': {'name': 'Puerto Rico'},
+    'VI': {'name': 'Virgin Islands'},
+    'GU': {'name': 'Guam'},
+    'MP': {'name': 'Northern Mariana Islands'},
+}
+
+stateMap = {}
+for state in states:
+    stateMap[states[state]['name']] = state
+    if 'displayName' not in states[state]:
+        states[state]['displayName'] = states[state]['name']
 
 monthMap = {
     1: 'January ',
@@ -124,6 +128,35 @@ csvData = []
 for line in file:
     csvData.append(line)
 
+response = urllib.request.urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_states_centroids.json')
+stateData = json.loads(response.read())
+
+for state in stateData['features']:
+    if state['geometry'] is not None:
+        states[state['properties']['state_abbrev']]['x'] = 50 + 2.325 * state['geometry']['coordinates'][0]
+        states[state['properties']['state_abbrev']]['y'] = 49.5 - 3.65 * state['geometry']['coordinates'][1]
+states['HI']['x'] -= 1
+states['HI']['y'] += 1
+states['WV']['x'] -= 1
+states['WV']['y'] += 2
+states['DC']['y'] += 2
+states['MD']['x'] -= 1
+states['MD']['y'] -= 1.5
+states['DE']['x'] += .5
+states['VT']['y'] -= 1
+states['NH']['y'] += 1.5
+states['MA']['y'] -= .9
+states['RI']['x'] += 1.2
+states['CT']['y'] += 1.4
+states['PR']['x'] = 86
+states['PR']['y'] = 72
+states['VI']['x'] = 95
+states['VI']['y'] = 72
+states['GU']['x'] = 57
+states['GU']['y'] = 89
+states['MP']['x'] = 71
+states['MP']['y'] = 89
+
 response = urllib.request.urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_counties_centroids.json')
 countyData = json.loads(response.read())
 
@@ -133,6 +166,10 @@ for county in countyData['features']:
         'x': 50   + 2.325 * county['geometry']['coordinates'][0],
         'y': 32.1 - 2.345 * county['geometry']['coordinates'][1],
     }
+counties['PR:Puerto Rico'] = {'x': 86, 'y': 49}
+counties['VI:Unknown']     = {'x': 95, 'y': 49}
+counties['GU:Unknown']     = {'x': 57, 'y': 60}
+counties['MP:Unknown']     = {'x': 71, 'y': 60}
 
 keyMap = {
     'AK:Anchorage': 'AK:Anchorage Municipality',
@@ -146,16 +183,14 @@ for day in range(1, 21):
     date = '2020-01-' + str(day).zfill(2)
     dates.append(date)
     data[date] = {
-        'counties':    {},
-        'states':      {},
-        'totalCases':  0,
-        'newCases':    0,
-        'totalDeaths': 0,
-        'newDeaths':   0,
+        'counties': {},
+        'states':   {},
     }
+    for type in types:
+        data[date][type] = 0
 
 for row in csvData[1:]:
-    state = stateMap[row[2]]['code']
+    state = stateMap[row[2]]
     key = state + ':' + row[1]
     if key[-5:] == ' city':
         key = key[:-5] + ' City'
@@ -168,44 +203,34 @@ for row in csvData[1:]:
     if dates[-1] != today:
         dates.append(today)
         data[today] = {
-            'counties':    {},
-            'states':      {},
-            'totalCases':  0,
-            'newCases':    0,
-            'totalDeaths': 0,
-            'newDeaths':   0,
+            'counties': {},
+            'states':   {},
         }
+        for type in types:
+            data[today][type] = 0
+
     yesterday = dates[-2]
 
     if state not in data[today]['states']:
-        data[today]['states'][state] = {
-            'totalCases':  0,
-            'newCases':    0,
-            'totalDeaths': 0,
-            'newDeaths':   0,
-        }
+        data[today]['states'][state] = {}
+        for type in types:
+            data[today]['states'][state][type] = 0
 
     data[today]['counties'][key] = {
-        'totalCases':  int(row[4]),
-        'newCases':    int(row[4]),
-        'totalDeaths': int(row[5]),
-        'newDeaths':   int(row[5]),
+        'Total Cases':  int(row[4]),
+        'Total Deaths': int(row[5]),
     }
-    if key in data[yesterday]['counties']:
-        data[today]['counties'][key]['newCases']  -= data[yesterday]['counties'][key]['totalCases']
-        data[today]['counties'][key]['newDeaths'] -= data[yesterday]['counties'][key]['totalDeaths']
-        if data[today]['counties'][key]['newCases'] < 0:
-            data[today]['counties'][key]['newCases'] = 0
-        if data[today]['counties'][key]['newDeaths'] < 0:
-            data[today]['counties'][key]['newDeaths'] = 0
-    data[today]['states'][state]['totalCases']  += data[today]['counties'][key]['totalCases']
-    data[today]['states'][state]['newCases']    += data[today]['counties'][key]['newCases']
-    data[today]['states'][state]['totalDeaths'] += data[today]['counties'][key]['totalDeaths']
-    data[today]['states'][state]['newDeaths']   += data[today]['counties'][key]['newDeaths']
-    data[today]['totalCases']  += data[today]['counties'][key]['totalCases']
-    data[today]['newCases']    += data[today]['counties'][key]['newCases']
-    data[today]['totalDeaths'] += data[today]['counties'][key]['totalDeaths']
-    data[today]['newDeaths']   += data[today]['counties'][key]['newDeaths']
+    for type in types:
+        if type[:4] == 'New ':
+            totalType = 'Total ' + type[4:]
+            subtrahend = 0
+            if key in data[yesterday]['counties']:
+                subtrahend = data[yesterday]['counties'][key][totalType]
+            data[today]['counties'][key][type] = data[today]['counties'][key][totalType] - subtrahend
+            if  data[today]['counties'][key][type] < 0:
+                data[today]['counties'][key][type] = 0
+        data[today]['states'][state][type] += data[today]['counties'][key][type]
+        data[today][type]                  += data[today]['counties'][key][type]
 
 missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
@@ -215,28 +240,30 @@ if len(missingList):
 
 
 
+fps = framesPerDay * 2
+
 try:
-    with open('lastFpd.json') as fpdFile:
-        lastFpd = json.load(fpdFile)
+    with open('lastFps.json') as fpsFile:
+        lastFps = json.load(fpsFile)
 except:
-    lastFpd = {}
+    lastFps = {}
 try:
-    with open('lastFpd.json') as fpdFile:
-        lastFpd = json.load(fpdFile)
+    with open('lastFps.json') as fpsFile:
+        lastFps = json.load(fpsFile)
 except:
-    lastFpd = {}
+    lastFps = {}
 with open('map.html', 'r') as mapFile:
     map = mapFile.read()
 
-for type in types:
-    if type not in lastFpd or lastFpd[type] != fpd:
+for type in buildVideos:
+    if type not in lastFps or lastFps[type] != fps:
         for filename in os.listdir('html/' + type):
             os.remove('html/' + type + '/' + filename)
         for filename in os.listdir('frames/' + type):
             os.remove('frames/' + type + '/' + filename)
-        lastFpd[type] = fpd
-        with open('lastFpd.json', 'w') as fpdFile:
-            json.dump(lastFpd, fpdFile)
+        lastFps[type] = fps
+        with open('lastFps.json', 'w') as fpsFile:
+            json.dump(lastFps, fpsFile)
 
     types[type]['anyUpdated'] = False
     i = 0
@@ -256,10 +283,11 @@ for type in types:
 
         for state in data[date]['states']:
             if data[date]['states'][state][type] > 0:
-                html += '<div class="point svelte-3fv2ao" style="left: '+ stateMap[state]['left'] + '%; top: ' + stateMap[state]['top'] + '%">'
+                html += '<div class="point svelte-3fv2ao" style="left: '+ str(states[state]['x']) + '%; top: ' + str(states[state]['y']) + '%">'
                 html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-                html += '<span class="label ' + types[type]['labels'] + '">' + stateMap[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
+                html += '<span class="label ' + types[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
 
+        html += '\n<div class="point svelte-3fv2ao" style="left: 35%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + type + '</span></div>\n'
         html += '\n<div class="point svelte-3fv2ao" style="left: 71.5%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + monthMap[month] + str(day) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
@@ -301,4 +329,6 @@ for type in types:
         exit()
 
     if types[type]['anyUpdated']:
-        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i frames/' + type + '/frame%04d.png -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow videos/' + type + '.mp4 -y')
+        os.remove('videos/' + type + '.mp4')
+    if not os.path.exists('videos/' + type + '.mp4'):
+        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%04d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + type + '.mp4"')
