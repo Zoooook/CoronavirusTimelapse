@@ -35,6 +35,21 @@ options = webdriver.ChromeOptions()
 options.add_argument('--kiosk')
 options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
+monthMap = {
+    1: 'January ',
+    2: 'February ',
+    3: 'March ',
+    4: 'April ',
+    5: 'May ',
+    6: 'June ',
+    7: 'July ',
+    8: 'August ',
+    9: 'September ',
+    10: 'October ',
+    11: 'November ',
+    12: 'December ',
+}
+
 types = {
     'Total Cases':  {'cases': 'Total Cases', 'deaths': 'Total Deaths', 'circles': 'red',   'labels': 'black', 'scale': 3},
     'Total Deaths': {'cases': 'Total Cases', 'deaths': 'Total Deaths', 'circles': 'black', 'labels': 'aqua',  'scale': 10},
@@ -106,28 +121,6 @@ for state in states:
     if 'displayName' not in states[state]:
         states[state]['displayName'] = states[state]['name']
 
-monthMap = {
-    1: 'January ',
-    2: 'February ',
-    3: 'March ',
-    4: 'April ',
-    5: 'May ',
-    6: 'June ',
-    7: 'July ',
-    8: 'August ',
-    9: 'September ',
-    10: 'October ',
-    11: 'November ',
-    12: 'December ',
-}
-
-response = urllib.request.urlopen('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
-file = csv.reader(codecs.iterdecode(response, 'utf-8'))
-
-csvData = []
-for line in file:
-    csvData.append(line)
-
 response = urllib.request.urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_states_centroids.json')
 stateData = json.loads(response.read())
 
@@ -175,6 +168,13 @@ keyMap = {
     'AK:Anchorage': 'AK:Anchorage Municipality',
     'PR:Unknown':   'PR:Puerto Rico',
 }
+
+response = urllib.request.urlopen('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
+file = csv.reader(codecs.iterdecode(response, 'utf-8'))
+
+csvData = []
+for line in file:
+    csvData.append(line)
 
 missing = {}
 dates = []
