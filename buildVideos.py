@@ -1,3 +1,5 @@
+# ---------------------------------------------------- User Input ---------------------------------------------------- #
+
 framesPerDay = 1
 
 buildVideos = [
@@ -6,6 +8,8 @@ buildVideos = [
     'New Cases',
     'New Deaths',
 ]
+
+# ------------------------------------------------------ Setup ------------------------------------------------------- #
 
 import os
 import shutil
@@ -121,6 +125,8 @@ for state in states:
     if 'displayName' not in states[state]:
         states[state]['displayName'] = states[state]['name']
 
+# ------------------------------------------------- Get Static Data -------------------------------------------------- #
+
 response = urllib.request.urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_states_centroids.json')
 stateData = json.loads(response.read())
 
@@ -155,6 +161,8 @@ countyData = json.loads(response.read())
 
 counties = {}
 for county in countyData['features']:
+    if county['properties']['displayname'] == 'Doña Ana':
+        county['properties']['displayname'] = 'Dona Ana'
     counties[county['properties']['st'] + ':' + county['properties']['displayname']] = {
         'x': 50   + 2.325 * county['geometry']['coordinates'][0],
         'y': 32.1 - 2.345 * county['geometry']['coordinates'][1],
@@ -164,10 +172,25 @@ counties['VI:Unknown']     = {'x': 95, 'y': 49}
 counties['GU:Unknown']     = {'x': 57, 'y': 60}
 counties['MP:Unknown']     = {'x': 71, 'y': 60}
 
-keyMap = {
-    'AK:Anchorage': 'AK:Anchorage Municipality',
-    'PR:Unknown':   'PR:Puerto Rico',
-}
+def countyKey(key):
+    keyMap = {
+        'AK:Anchorage': 'AK:Anchorage Municipality',
+        'PR:Unknown':   'PR:Puerto Rico',
+        'NM:Doña Ana':  'NM:Dona Ana',
+    }
+    if key in keyMap:
+        return keyMap[key]
+    if key[-5:] == ' city':
+        return key[:-5] + ' City'
+    return key
+
+with open('population.json') as popFile:
+    population = json.load(popFile)
+for row in population:
+    counties[countyKey(stateMap[row['region']] + ':' + row['subregion'])]['population'] = int(row['population'])
+print('Missing population data for', len(counties) - len(population), 'counties')
+
+# ------------------------------------------------- Get Dynamic Data ------------------------------------------------- #
 
 response = urllib.request.urlopen('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
 file = csv.reader(codecs.iterdecode(response, 'utf-8'))
@@ -191,11 +214,7 @@ for day in range(1, 21):
 
 for row in csvData[1:]:
     state = stateMap[row[2]]
-    key = state + ':' + row[1]
-    if key[-5:] == ' city':
-        key = key[:-5] + ' City'
-    if key in keyMap:
-        key = keyMap[key]
+    key = countyKey(state + ':' + row[1])
     if not key in counties:
         missing[key] = True
 
@@ -238,7 +257,7 @@ if len(missingList):
         print('Missing', key)
     exit()
 
-
+# --------------------------------------------------- Build Videos --------------------------------------------------- #
 
 fps = framesPerDay * 2
 
