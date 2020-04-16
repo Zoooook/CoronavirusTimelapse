@@ -55,11 +55,26 @@ monthMap = {
 }
 
 types = {
-    'Total Cases':  {'cases': 'Total Cases', 'deaths': 'Total Deaths', 'circles': 'red',   'labels': 'black', 'scale': 3},
-    'Total Deaths': {'cases': 'Total Cases', 'deaths': 'Total Deaths', 'circles': 'black', 'labels': 'aqua',  'scale': 10},
-    'New Cases':    {'cases': 'New Cases',   'deaths': 'New Deaths',   'circles': 'red',   'labels': 'black', 'scale': 10},
-    'New Deaths':   {'cases': 'New Cases',   'deaths': 'New Deaths',   'circles': 'black', 'labels': 'aqua',  'scale': 25},
+    'Total Cases':             {'scale': 3},
+    'Total Deaths':            {'scale': 10},
+    'New Cases':               {'scale': 10},
+    'New Deaths':              {'scale': 25},
+    'Total Cases Per Capita':  {'scale': 1},
+    'Total Deaths Per Capita': {'scale': 3},
+    'New Cases Per Capita':    {'scale': 3},
+    'New Deaths Per Capita':   {'scale': 10},
 }
+for type in types:
+    types[type]['title'] = type.replace('Capita', 'Million People')
+    types[type]['cases'] = type.replace('Deaths', 'Cases')
+    types[type]['deaths'] = type.replace('Cases', 'Deaths')
+    typeWords = type.split(' ')
+    if typeWords[1] == 'Cases':
+        types[type]['circles'] = 'red'
+        types[type]['labels'] = 'black'
+    else:
+        types[type]['circles'] = 'black'
+        types[type]['labels'] = 'aqua'
 
 states = {
     'AL': {'name': 'Alabama'},
@@ -122,6 +137,7 @@ states = {
 stateMap = {}
 for state in states:
     stateMap[states[state]['name']] = state
+    states[state]['population'] = 0
     if 'displayName' not in states[state]:
         states[state]['displayName'] = states[state]['name']
 
@@ -186,9 +202,12 @@ def countyKey(key):
 
 with open('population.json') as popFile:
     population = json.load(popFile)
+totalPopulation = 0
 for row in population:
-    counties[countyKey(stateMap[row['region']] + ':' + row['subregion'])]['population'] = int(row['population'])
-print('Missing population data for', len(counties) - len(population), 'counties')
+    state = stateMap[row['region']]
+    counties[countyKey(state + ':' + row['subregion'])]['population'] = int(row['population'])
+    states[state]['population'] += int(row['population'])
+    totalPopulation += int(row['population'])
 
 # ------------------------------------------------- Get Dynamic Data ------------------------------------------------- #
 
@@ -228,8 +247,6 @@ for row in csvData[1:]:
         for type in types:
             data[today][type] = 0
 
-    yesterday = dates[-2]
-
     if state not in data[today]['states']:
         data[today]['states'][state] = {}
         for type in types:
@@ -239,17 +256,36 @@ for row in csvData[1:]:
         'Total Cases':  int(row[4]),
         'Total Deaths': int(row[5]),
     }
-    for type in types:
+
+    yesterday = dates[-2]
+
+    # Python3 doesn't support custom comparison functions for sorting, wtf, so hardcoded list because Total < New, raw < Per Capita
+    for type in ['Total Cases', 'Total Deaths', 'New Cases', 'New Deaths', 'Total Cases Per Capita', 'Total Deaths Per Capita', 'New Cases Per Capita', 'New Deaths Per Capita']:
+        if type[:6] == 'Total ' and type[-6:] == 'Capita':
+            data[today]['counties'][key][type] = 0
+            if key in counties:
+                rawType = type.replace(' Per Capita', '')
+                data[today]['counties'][key][type] = data[today]['counties'][key][rawType] * 1000000 / counties[key]['population']
         if type[:4] == 'New ':
-            totalType = 'Total ' + type[4:]
+            totalType = type.replace('New', 'Total')
             subtrahend = 0
             if key in data[yesterday]['counties']:
                 subtrahend = data[yesterday]['counties'][key][totalType]
             data[today]['counties'][key][type] = data[today]['counties'][key][totalType] - subtrahend
             if  data[today]['counties'][key][type] < 0:
                 data[today]['counties'][key][type] = 0
-        data[today]['states'][state][type] += data[today]['counties'][key][type]
-        data[today][type]                  += data[today]['counties'][key][type]
+
+        if type[-6:] != 'Capita':
+            data[today]['states'][state][type] += data[today]['counties'][key][type]
+            data[today][type]                  += data[today]['counties'][key][type]
+
+for type in types:
+    if type[-6:] == 'Capita':
+        rawType = type.replace(' Per Capita', '')
+        for date in dates:
+            for state in data[date]['states']:
+                data[date]['states'][state][type] = round(data[date]['states'][state][rawType] * 1000000 / states[state]['population'])
+            data[date][type] = round(data[date][rawType] * 1000000 / totalPopulation)
 
 missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
@@ -306,8 +342,8 @@ for type in buildVideos:
                 html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
                 html += '<span class="label ' + types[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
 
-        html += '\n<div class="point svelte-3fv2ao" style="left: 35%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + type + '</span></div>\n'
-        html += '\n<div class="point svelte-3fv2ao" style="left: 71.5%; top: 4%; width: 200px; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold">' + monthMap[month] + str(day) + '</span></div>\n'
+        html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + types[type]['title'] + '</span></div>\n'
+        html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[month] + str(day) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
 
@@ -347,7 +383,8 @@ for type in buildVideos:
         print('Too many frames:', badFilename)
         exit()
 
-    if types[type]['anyUpdated']:
-        os.remove('videos/' + type + '.mp4')
-    if not os.path.exists('videos/' + type + '.mp4'):
-        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%04d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + type + '.mp4"')
+    videoFilename = 'videos/' + type + '.mp4'
+    if types[type]['anyUpdated'] and os.path.exists(videoFilename):
+        os.remove(videoFilename)
+    if not os.path.exists(videoFilename):
+        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%04d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "' + videoFilename + '"')
