@@ -204,6 +204,8 @@ with open('population.json') as popFile:
     population = json.load(popFile)
 totalPopulation = 0
 for row in population:
+    if row['us_county_fips'] == '35013':
+        row['subregion'] = 'Dona Ana'
     state = stateMap[row['region']]
     counties[countyKey(state + ':' + row['subregion'])]['population'] = int(row['population'])
     states[state]['population'] += int(row['population'])
