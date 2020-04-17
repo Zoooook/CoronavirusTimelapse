@@ -5,8 +5,12 @@ framesPerDay = 1
 buildVideos = [
     'Total Cases',
     'Total Deaths',
-    'New Cases',
-    'New Deaths',
+    'Daily Cases',
+    'Daily Deaths',
+    'Total Cases Per Capita',
+    'Total Deaths Per Capita',
+    'Daily Cases Per Capita',
+    'Daily Deaths Per Capita',
 ]
 
 # ------------------------------------------------------ Setup ------------------------------------------------------- #
@@ -57,12 +61,12 @@ monthMap = {
 types = {
     'Total Cases':             {'scale': 3},
     'Total Deaths':            {'scale': 10},
-    'New Cases':               {'scale': 10},
-    'New Deaths':              {'scale': 25},
+    'Daily Cases':             {'scale': 10},
+    'Daily Deaths':            {'scale': 25},
     'Total Cases Per Capita':  {'scale': 1},
     'Total Deaths Per Capita': {'scale': 3},
-    'New Cases Per Capita':    {'scale': 3},
-    'New Deaths Per Capita':   {'scale': 10},
+    'Daily Cases Per Capita':  {'scale': 3},
+    'Daily Deaths Per Capita': {'scale': 10},
 }
 for type in types:
     types[type]['title'] = type.replace('Capita', 'Million People')
@@ -261,15 +265,15 @@ for row in csvData[1:]:
 
     yesterday = dates[-2]
 
-    # Python3 doesn't support custom comparison functions for sorting, wtf, so hardcoded list because Total < New, raw < Per Capita
-    for type in ['Total Cases', 'Total Deaths', 'New Cases', 'New Deaths', 'Total Cases Per Capita', 'Total Deaths Per Capita', 'New Cases Per Capita', 'New Deaths Per Capita']:
+    # Python3 doesn't support custom comparison functions for sorting, wtf, so hardcoded list because Total < Daily, raw < Per Capita
+    for type in ['Total Cases', 'Total Deaths', 'Daily Cases', 'Daily Deaths', 'Total Cases Per Capita', 'Total Deaths Per Capita', 'Daily Cases Per Capita', 'Daily Deaths Per Capita']:
         if type[:6] == 'Total ' and type[-6:] == 'Capita':
             data[today]['counties'][key][type] = 0
             if key in counties:
                 rawType = type.replace(' Per Capita', '')
                 data[today]['counties'][key][type] = data[today]['counties'][key][rawType] * 1000000 / counties[key]['population']
-        if type[:4] == 'New ':
-            totalType = type.replace('New', 'Total')
+        if type[:6] == 'Daily ':
+            totalType = type.replace('Daily', 'Total')
             subtrahend = 0
             if key in data[yesterday]['counties']:
                 subtrahend = data[yesterday]['counties'][key][totalType]
