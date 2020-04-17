@@ -362,7 +362,9 @@ for type in buildVideos:
         except:
             oldHtml = ''
 
+        types[type]['lastUpdated'] = False
         if html != oldHtml or not os.path.exists(imageFilename):
+            types[type]['lastUpdated'] = True
             types[type]['anyUpdated'] = True
 
             with open(htmlFilename, 'w') as newFile:
@@ -380,7 +382,7 @@ for type in buildVideos:
 
     for j in range(i+1, i+1+fps*2):
         copyFilename = 'frames/' + type + '/frame' + str(j).zfill(4) + '.png'
-        if not os.path.exists(copyFilename):
+        if types[type]['lastUpdated'] or not os.path.exists(copyFilename):
             shutil.copyfile(imageFilename, copyFilename)
             types[type]['anyUpdated'] = True
 
