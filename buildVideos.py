@@ -1,7 +1,5 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
-framesPerDay = 1
-
 buildVideos = {
     'Total Cases':             {'scale': 3},
     'Total Deaths':            {'scale': 10},
@@ -12,6 +10,10 @@ buildVideos = {
     'Daily Cases Per Capita':  {'scale': 3},
     'Daily Deaths Per Capita': {'scale': 10},
 }
+
+framesPerDay = 1
+
+lookbackDays = 2
 
 # ------------------------------------------------------ Setup ------------------------------------------------------- #
 
@@ -263,7 +265,7 @@ for row in csvData[1:]:
         'Total Deaths': int(row[5]),
     }
 
-    yesterday = dates[-2]
+    lookbackDay = dates[-1-lookbackDays]
 
     def typeSort(type):
         t = 0
@@ -282,9 +284,9 @@ for row in csvData[1:]:
         if type[:6] == 'Daily ':
             totalType = type.replace('Daily', 'Total')
             subtrahend = 0
-            if key in data[yesterday]['counties']:
-                subtrahend = data[yesterday]['counties'][key][totalType]
-            data[today]['counties'][key][type] = data[today]['counties'][key][totalType] - subtrahend
+            if key in data[lookbackDay]['counties']:
+                subtrahend = data[lookbackDay]['counties'][key][totalType]
+            data[today]['counties'][key][type] = (data[today]['counties'][key][totalType] - subtrahend) / lookbackDays
             if  data[today]['counties'][key][type] < 0:
                 data[today]['counties'][key][type] = 0
 
@@ -297,8 +299,12 @@ for type in types:
         rawType = type.replace(' Per Capita', '')
         for date in dates:
             for state in data[date]['states']:
-                data[date]['states'][state][type] = round(data[date]['states'][state][rawType] * 1000000 / states[state]['population'])
-            data[date][type] = round(data[date][rawType] * 1000000 / totalPopulation)
+                data[date]['states'][state][type] = data[date]['states'][state][rawType] * 1000000 / states[state]['population']
+            data[date][type] = data[date][rawType] * 1000000 / totalPopulation
+    for date in dates:
+        for state in data[date]['states']:
+            data[date]['states'][state][type] = round(data[date]['states'][state][type])
+        data[date][type] = round(data[date][type])
 
 missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
@@ -356,6 +362,8 @@ for type in buildVideos:
                 html += '<span class="label ' + types[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
 
         html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + types[type]['title'] + '</span></div>\n'
+        if type[:6] == 'Daily ':
+            html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(lookbackDays) + '-Day Average</span></div>\n'
         html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[month] + str(day) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
