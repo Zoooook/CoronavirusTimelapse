@@ -2,16 +2,16 @@
 
 framesPerDay = 1
 
-buildVideos = [
-    'Total Cases',
-    'Total Deaths',
-    'Daily Cases',
-    'Daily Deaths',
-    'Total Cases Per Capita',
-    'Total Deaths Per Capita',
-    'Daily Cases Per Capita',
-    'Daily Deaths Per Capita',
-]
+buildVideos = {
+    'Total Cases':             {'scale': 3},
+    'Total Deaths':            {'scale': 10},
+    'Daily Cases':             {'scale': 10},
+    'Daily Deaths':            {'scale': 25},
+    'Total Cases Per Capita':  {'scale': 1},
+    'Total Deaths Per Capita': {'scale': 3},
+    'Daily Cases Per Capita':  {'scale': 3},
+    'Daily Deaths Per Capita': {'scale': 10},
+}
 
 # ------------------------------------------------------ Setup ------------------------------------------------------- #
 
@@ -59,14 +59,14 @@ monthMap = {
 }
 
 types = {
-    'Total Cases':             {'scale': 3},
-    'Total Deaths':            {'scale': 10},
-    'Daily Cases':             {'scale': 10},
-    'Daily Deaths':            {'scale': 25},
-    'Total Cases Per Capita':  {'scale': 1},
-    'Total Deaths Per Capita': {'scale': 3},
-    'Daily Cases Per Capita':  {'scale': 3},
-    'Daily Deaths Per Capita': {'scale': 10},
+    'Total Cases':             {},
+    'Total Deaths':            {},
+    'Daily Cases':             {},
+    'Daily Deaths':            {},
+    'Total Cases Per Capita':  {},
+    'Total Deaths Per Capita': {},
+    'Daily Cases Per Capita':  {},
+    'Daily Deaths Per Capita': {},
 }
 for type in types:
     types[type]['title'] = type.replace('Capita', 'Million People')
@@ -344,7 +344,7 @@ for type in buildVideos:
         html = map
         for county in data[date]['counties']:
             if county not in missing and data[date]['counties'][county][type] > 0:
-                r = sqrt(data[date]['counties'][county][type]) * types[type]['scale'] / 100
+                r = sqrt(data[date]['counties'][county][type]) * buildVideos[type]['scale'] / 100
                 html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + types[type]['circles'] + '"></circle>\n'
 
         html += '\n</svg>\n\n'
