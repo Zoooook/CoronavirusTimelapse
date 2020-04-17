@@ -265,8 +265,15 @@ for row in csvData[1:]:
 
     yesterday = dates[-2]
 
-    # Python3 doesn't support custom comparison functions for sorting, wtf, so hardcoded list because Total < Daily, raw < Per Capita
-    for type in ['Total Cases', 'Total Deaths', 'Daily Cases', 'Daily Deaths', 'Total Cases Per Capita', 'Total Deaths Per Capita', 'Daily Cases Per Capita', 'Daily Deaths Per Capita']:
+    def typeSort(type):
+        t = 0
+        if type[:6] == 'Daily ':
+            t += 1
+        if type[-6:] == 'Capita':
+            t += 2
+        return t
+
+    for type in sorted(types, key = typeSort):
         if type[:6] == 'Total ' and type[-6:] == 'Capita':
             data[today]['counties'][key][type] = 0
             if key in counties:
@@ -380,13 +387,13 @@ for type in buildVideos:
             image.save(imageFilename)
             os.remove('frames/temp.png')
 
-    for j in range(i+1, i+1+fps*2):
+    for j in range(i+1, i+fps*5+1):
         copyFilename = 'frames/' + type + '/frame' + str(j).zfill(4) + '.png'
         if types[type]['lastUpdated'] or not os.path.exists(copyFilename):
             shutil.copyfile(imageFilename, copyFilename)
             types[type]['anyUpdated'] = True
 
-    badFilename = 'frames/' + type + '/frame' + str(i+1+fps*2).zfill(4) + '.png'
+    badFilename = 'frames/' + type + '/frame' + str(i+fps*5+1).zfill(4) + '.png'
     if os.path.exists(badFilename):
         print('Too many frames:', badFilename)
         exit()
