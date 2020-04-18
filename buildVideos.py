@@ -1,19 +1,20 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
 buildVideos = {
-    'Total Cases':             {'scale': 3},
-    'Total Deaths':            {'scale': 10},
-    'Daily Cases':             {'scale': 10},
-    'Daily Deaths':            {'scale': 25},
+    'Total Cases':             {'scale': 2},
+    'Total Deaths':            {'scale': 4},
+    'Daily Cases':             {'scale': 5},
+    'Daily Deaths':            {'scale': 10},
     'Total Cases Per Capita':  {'scale': 1},
-    'Total Deaths Per Capita': {'scale': 3},
+    'Total Deaths Per Capita': {'scale': 2},
     'Daily Cases Per Capita':  {'scale': 3},
-    'Daily Deaths Per Capita': {'scale': 10},
+    'Daily Deaths Per Capita': {'scale': 6},
 }
 
 framesPerDay = 1
 
-lookbackDays = 3
+casesLookbackDays = 3
+deathsLookbackDays = 5
 
 # ------------------------------------------------------ Setup ------------------------------------------------------- #
 
@@ -61,14 +62,14 @@ monthMap = {
 }
 
 types = {
-    'Total Cases':             {},
-    'Total Deaths':            {},
-    'Daily Cases':             {},
-    'Daily Deaths':            {},
-    'Total Cases Per Capita':  {},
-    'Total Deaths Per Capita': {},
-    'Daily Cases Per Capita':  {},
-    'Daily Deaths Per Capita': {},
+    'Total Cases':             {'index': 1},
+    'Total Deaths':            {'index': 2},
+    'Daily Cases':             {'index': 3},
+    'Daily Deaths':            {'index': 4},
+    'Total Cases Per Capita':  {'index': 5},
+    'Total Deaths Per Capita': {'index': 6},
+    'Daily Cases Per Capita':  {'index': 7},
+    'Daily Deaths Per Capita': {'index': 8},
 }
 for type in types:
     types[type]['title'] = type.replace('Capita', 'Million People')
@@ -78,9 +79,11 @@ for type in types:
     if typeWords[1] == 'Cases':
         types[type]['circles'] = 'red'
         types[type]['labels'] = 'black'
+        types[type]['lookbackDays'] = casesLookbackDays
     else:
         types[type]['circles'] = 'black'
         types[type]['labels'] = 'aqua'
+        types[type]['lookbackDays'] = deathsLookbackDays
 
 states = {
     'AL': {'name': 'Alabama'},
@@ -265,8 +268,6 @@ for row in csvData[1:]:
         'Total Deaths': int(row[5]),
     }
 
-    lookbackDay = dates[-1-lookbackDays]
-
     def typeSort(type):
         t = 0
         if type[:6] == 'Daily ':
@@ -276,6 +277,8 @@ for row in csvData[1:]:
         return t
 
     for type in sorted(types, key = typeSort):
+        lookbackDay = dates[-1-types[type]['lookbackDays']]
+
         if type[:6] == 'Total ' and type[-6:] == 'Capita':
             data[today]['counties'][key][type] = 0
             if key in counties:
@@ -286,7 +289,7 @@ for row in csvData[1:]:
             subtrahend = 0
             if key in data[lookbackDay]['counties']:
                 subtrahend = data[lookbackDay]['counties'][key][totalType]
-            data[today]['counties'][key][type] = (data[today]['counties'][key][totalType] - subtrahend) / lookbackDays
+            data[today]['counties'][key][type] = (data[today]['counties'][key][totalType] - subtrahend) / types[type]['lookbackDays']
             if  data[today]['counties'][key][type] < 0:
                 data[today]['counties'][key][type] = 0
 
@@ -363,7 +366,7 @@ for type in buildVideos:
 
         html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + types[type]['title'] + '</span></div>\n'
         if type[:6] == 'Daily ':
-            html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(lookbackDays) + '-Day Average</span></div>\n'
+            html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(types[type]['lookbackDays']) + '-Day Average</span></div>\n'
         html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[month] + str(day) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
         html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
@@ -406,7 +409,7 @@ for type in buildVideos:
         print('Too many frames:', badFilename)
         exit()
 
-    videoFilename = 'videos/' + type + '.mp4'
+    videoFilename = 'videos/' + str(types[type]['index']) + ' ' + type + '.mp4'
     if types[type]['anyUpdated'] and os.path.exists(videoFilename):
         os.remove(videoFilename)
     if not os.path.exists(videoFilename):
