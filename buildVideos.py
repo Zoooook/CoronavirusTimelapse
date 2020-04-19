@@ -1,14 +1,14 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
 buildVideos = {
-    'Total Cases':             {'scale': 2},
-    'Total Deaths':            {'scale': 4},
-    'Daily Cases':             {'scale': 5},
-    'Daily Deaths':            {'scale': 10},
-    'Total Cases Per Capita':  {'scale': 1},
-    'Total Deaths Per Capita': {'scale': 2},
-    'Daily Cases Per Capita':  {'scale': 3},
-    'Daily Deaths Per Capita': {'scale': 6},
+    'Total Cases':             {'startDate': '01-15', 'scale': 2},
+    'Total Deaths':            {'startDate': '02-15', 'scale': 4},
+    'Daily Cases':             {'startDate': '02-01', 'scale': 5},
+    'Daily Deaths':            {'startDate': '02-15', 'scale': 10},
+    'Total Cases Per Capita':  {'startDate': '02-15', 'scale': 1},
+    'Total Deaths Per Capita': {'startDate': '03-01', 'scale': 2},
+    'Daily Cases Per Capita':  {'startDate': '03-01', 'scale': 3},
+    'Daily Deaths Per Capita': {'startDate': '03-01', 'scale': 6},
 }
 
 casesLookbackDays = 3
@@ -70,6 +70,7 @@ types = {
     'Daily Deaths Per Capita': {'index': 8},
 }
 for type in types:
+    types[type]['frameOffset'] = framesPerDay // 2 + 1
     types[type]['title']  = type.replace('Capita', 'Million People')
     types[type]['cases']  = type.replace('Deaths', 'Cases')
     types[type]['deaths'] = type.replace('Cases', 'Deaths')
@@ -295,10 +296,8 @@ for type in types:
             for state in data[date]['states']:
                 data[date]['states'][state][type] = data[date]['states'][state][rawType] * 1000000 / states[state]['population']
             data[date][type] = data[date][rawType] * 1000000 / totalPopulation
-    for date in dates:
-        for state in data[date]['states']:
-            data[date]['states'][state][type] = data[date]['states'][state][type]
-        data[date][type] = data[date][type]
+    if type in buildVideos:
+        types[type]['frameOffset'] -= (dates.index('2020-'+buildVideos[type]['startDate']) - 1) * framesPerDay
 
 missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
@@ -388,27 +387,27 @@ def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename):
         copyfile(imageFilename, frameFilename)
 
 try:
-    with open('lastFpd.json') as fpdFile:
-        lastFpd = json.load(fpdFile)
+    with open('lastParams.json') as paramFile:
+        lastParams = json.load(paramFile)
 except:
-    lastFpd = {}
+    lastParams = {}
 
 fps = framesPerDay * daysPerSecond
-frameOffset = framesPerDay // 2 + 1
 
 for type in buildVideos:
-    if type not in lastFpd or lastFpd[type] != framesPerDay:
+    params = {'framesPerDay': framesPerDay, 'startDate': buildVideos[type]['startDate']}
+    if type not in lastParams or lastParams[type] != params:
         for filename in os.listdir('frames/' + type):
             os.remove('frames/' + type + '/' + filename)
-        lastFpd[type] = framesPerDay
-        with open('lastFpd.json', 'w') as fpdFile:
-            json.dump(lastFpd, fpdFile)
+        lastParams[type] = params
+        with open('lastParams.json', 'w') as paramFile:
+            json.dump(lastParams, paramFile)
 
     for i in range(len(dates)):
         today = dates[i]
         tomorrow = dates[i+1] if i+1<len(dates) else ''
         for j in range(0, framesPerDay):
-            frame = frameOffset + (i-1)*framesPerDay + j
+            frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
             if frame > 0:
                 if i < 20:
                     date = today if 2*j<framesPerDay else tomorrow
