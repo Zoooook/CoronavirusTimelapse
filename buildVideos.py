@@ -228,15 +228,12 @@ for line in file:
     csvData.append(line)
 
 missing = {}
-dates = []
-data = {}
+dates = ['2019-12-31']
+data = {'2019-12-31': {'counties': {}, 'states': {}}}
 for day in range(1, 21):
     date = '2020-01-' + str(day).zfill(2)
     dates.append(date)
-    data[date] = {
-        'counties': {},
-        'states':   {},
-    }
+    data[date] = data['2019-12-31'] # copies reference to object but it's ok because it never changes
     for type in types:
         data[date][type] = 0
 
@@ -249,10 +246,7 @@ for row in csvData[1:]:
     today = row[0]
     if dates[-1] != today:
         dates.append(today)
-        data[today] = {
-            'counties': {},
-            'states':   {},
-        }
+        data[today] = {'counties': {}, 'states': {}}
         for type in types:
             data[today][type] = 0
 
@@ -329,6 +323,7 @@ def formatNum(num):
     return f'{num:,}'
 
 def buildHtml(day1, day2, numer, denom):
+    day1 = day1 or day2
     day2 = day2 or day1
     date = day1 if 2*numer<denom else day2
     fraction = numer/denom
@@ -362,8 +357,25 @@ def buildHtml(day1, day2, numer, denom):
 
     return html
 
-def buildImages(htmlFilename, imageFilename, frameFilename):
+def deleteFile(filename):
+    try: os.remove(filename)
+    except: pass
+
+def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename):
+    try:
+        with open(htmlFilename, 'r') as oldFile:
+            oldHtml = oldFile.read()
+    except:
+        oldHtml = ''
+
+    if newHtml != oldHtml:
+        deleteFile(imageFilename)
+        with open(htmlFilename, 'w') as newFile:
+            newFile.write(newHtml)
+
     if not os.path.exists(imageFilename):
+        deleteFile(frameFilename)
+
         driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
         driver.save_screenshot('images/temp.png')
 
@@ -394,63 +406,26 @@ for type in buildVideos:
 
     for i in range(len(dates)):
         today = dates[i]
-        yesterday = dates[i-1] if i else ''
-
-        htmlFilename = 'html/' + type + '/' + today + '.000.html'
-        imageFilename = 'images/' + type + '/' + today + '.000.png'
-        frameFilename = 'frames/' + type + '/frame' + str(frameOffset+i*framesPerDay).zfill(5) + '.png'
-
-        try:
-            with open(htmlFilename, 'r') as oldFile:
-                oldHtml = oldFile.read()
-        except:
-            oldHtml = ''
-
-        html = buildHtml(today, '', 0, 1)
-
-        if html != oldHtml:
-            for filename in os.listdir('html/' + type):
-                if filename[:10] in [yesterday, today] and filename[-9:] != '.000.html':
-                    os.remove('html/' + type + '/' + filename)
-            for filename in os.listdir('images/' + type):
-                if filename[:10] in [yesterday, today] and filename[-8:] != '.000.png':
-                    os.remove('images/' + type + '/' + filename)
-            try: os.remove(imageFilename)
-            except: pass
-            for j in range(frameOffset+(i-1)*framesPerDay+1, frameOffset+(i+1)*framesPerDay):
-                try: os.remove('frames/' + type + '/frame' + str(j).zfill(5) + '.png')
-                except: pass
-
-            with open(htmlFilename, 'w') as newFile:
-                newFile.write(html)
-
-        args = [htmlFilename, imageFilename, frameFilename]
-
-        for j in range(1, framesPerDay):
+        tomorrow = dates[i+1] if i+1<len(dates) else ''
+        for j in range(0, framesPerDay):
             frame = frameOffset + (i-1)*framesPerDay + j
             if frame > 0:
-                frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
                 if i < 20:
-                    date = yesterday if 2*j<framesPerDay else today
+                    date = today if 2*j<framesPerDay else tomorrow
                     htmlFilename = 'html/' + type + '/' + date + '.000.html'
                     imageFilename = 'images/' + type + '/' + date + '.000.png'
                 else:
                     decimal = f'{j/framesPerDay:0.3f}'[1:]
-                    htmlFilename = 'html/' + type + '/' + yesterday + decimal + '.html'
-                    imageFilename = 'images/' + type + '/' + yesterday + decimal + '.png'
+                    htmlFilename = 'html/' + type + '/' + today + decimal + '.html'
+                    imageFilename = 'images/' + type + '/' + today + decimal + '.png'
+                frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
+                buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename)
+            if not tomorrow and not j:
+                break
 
-                if not os.path.exists(htmlFilename):
-                    with open(htmlFilename, 'w') as newFile:
-                        newFile.write(buildHtml(yesterday, today, j, framesPerDay))
-                buildImages(htmlFilename, imageFilename, frameFilename)
-
-        buildImages(*args)
-
-    lastFrame = frameOffset + (len(dates)-1) * framesPerDay
-    lastFrameFilename = 'frames/' + type + '/frame' + str(lastFrame).zfill(5) + '.png'
-    for j in range(lastFrame+1, lastFrame+fps*5+1):
-        copyFilename = 'frames/' + type + '/frame' + str(j).zfill(5) + '.png'
-        copyfile(lastFrameFilename, copyFilename)
+    for i in range(frame+1, frame+fps*5+1):
+        copyFilename = 'frames/' + type + '/frame' + str(i).zfill(5) + '.png'
+        copyfile(frameFilename, copyFilename)
 
     os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + str(types[type]['index']) + ' ' + type + '.mp4" -y')
 
