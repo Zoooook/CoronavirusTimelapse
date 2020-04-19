@@ -357,8 +357,8 @@ def buildHtml(day1, day2, numer, denom):
     if type[:6] == 'Daily ':
         html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(types[type]['lookbackDays']) + '-Day Average</span></div>\n'
     html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[int(date[5:7])] + str(int(date[8:10])) + '</span></div>\n'
-    html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">'    + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]["cases"]],  data[day2][types[type]["cases"]],  fraction))) + '</span></div>\n'
-    html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]["deaths"]], data[day2][types[type]["deaths"]], fraction))) + '</span></div>\n\n</div></div>'
+    html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">'    + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]['cases']],  data[day2][types[type]['cases']],  fraction))) + '</span></div>\n'
+    html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]['deaths']], data[day2][types[type]['deaths']], fraction))) + '</span></div>\n\n</div></div>'
 
     return html
 
