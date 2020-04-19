@@ -4,6 +4,7 @@
 /old/frames
 /backup
 /html
+/images
 /frames
-lastFps.json
+lastFpd.json
 test*.py

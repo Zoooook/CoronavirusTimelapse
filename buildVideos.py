@@ -11,32 +11,30 @@ buildVideos = {
     'Daily Deaths Per Capita': {'scale': 6},
 }
 
-framesPerDay = 1
-
 casesLookbackDays = 3
 deathsLookbackDays = 5
+
+framesPerDay = 12
+daysPerSecond = 2
 
 # ------------------------------------------------------ Setup ------------------------------------------------------- #
 
 import os
-import shutil
-import urllib.request
-import codecs
-import csv
-import json
-from math import sqrt
 from selenium import webdriver
+from urllib.request import urlopen
+import json
+from codecs import iterdecode
+import csv
+from math import floor, ceil, sqrt
 from PIL import Image
-
-def formatNum(num):
-    return f'{num:,}'
+from shutil import copyfile
 
 def makeDir(dir):
     try: os.mkdir(dir)
     except: pass
 
 makeDir('videos')
-dirs = ['html', 'frames']
+dirs = ['html', 'images', 'frames']
 for dir in dirs:
     makeDir(dir)
     for subDir in buildVideos:
@@ -72,8 +70,8 @@ types = {
     'Daily Deaths Per Capita': {'index': 8},
 }
 for type in types:
-    types[type]['title'] = type.replace('Capita', 'Million People')
-    types[type]['cases'] = type.replace('Deaths', 'Cases')
+    types[type]['title']  = type.replace('Capita', 'Million People')
+    types[type]['cases']  = type.replace('Deaths', 'Cases')
     types[type]['deaths'] = type.replace('Cases', 'Deaths')
     typeWords = type.split(' ')
     if typeWords[1] == 'Cases':
@@ -152,7 +150,7 @@ for state in states:
 
 # ------------------------------------------------- Get Static Data -------------------------------------------------- #
 
-response = urllib.request.urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_states_centroids.json')
+response = urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_states_centroids.json')
 stateData = json.loads(response.read())
 
 for state in stateData['features']:
@@ -181,13 +179,13 @@ states['GU']['y'] = 89
 states['MP']['x'] = 71
 states['MP']['y'] = 89
 
-response = urllib.request.urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_counties_centroids.json')
+response = urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_counties_centroids.json')
 countyData = json.loads(response.read())
 
 counties = {}
 for county in countyData['features']:
-    if county['properties']['displayname'] == 'Doña Ana':
-        county['properties']['displayname'] = 'Dona Ana'
+    if  county['properties']['displayname'] == 'Doña Ana':
+        county['properties']['displayname'] =  'Dona Ana'
     counties[county['properties']['st'] + ':' + county['properties']['displayname']] = {
         'x': 50   + 2.325 * county['geometry']['coordinates'][0],
         'y': 32.1 - 2.345 * county['geometry']['coordinates'][1],
@@ -222,8 +220,8 @@ for row in population:
 
 # ------------------------------------------------- Get Dynamic Data ------------------------------------------------- #
 
-response = urllib.request.urlopen('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
-file = csv.reader(codecs.iterdecode(response, 'utf-8'))
+response = urlopen('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
+file = csv.reader(iterdecode(response, 'utf-8'))
 
 csvData = []
 for line in file:
@@ -276,6 +274,7 @@ for row in csvData[1:]:
             t += 2
         return t
 
+    # this is the sorted() parameter 'key', not the variable
     for type in sorted(types, key = typeSort):
         lookbackDay = dates[-1-types[type]['lookbackDays']]
 
@@ -286,9 +285,7 @@ for row in csvData[1:]:
                 data[today]['counties'][key][type] = data[today]['counties'][key][rawType] * 1000000 / counties[key]['population']
         if type[:6] == 'Daily ':
             totalType = type.replace('Daily', 'Total')
-            subtrahend = 0
-            if key in data[lookbackDay]['counties']:
-                subtrahend = data[lookbackDay]['counties'][key][totalType]
+            subtrahend = data[lookbackDay]['counties'][key][totalType] if key in data[lookbackDay]['counties'] else 0
             data[today]['counties'][key][type] = (data[today]['counties'][key][totalType] - subtrahend) / types[type]['lookbackDays']
             if  data[today]['counties'][key][type] < 0:
                 data[today]['counties'][key][type] = 0
@@ -306,8 +303,8 @@ for type in types:
             data[date][type] = data[date][rawType] * 1000000 / totalPopulation
     for date in dates:
         for state in data[date]['states']:
-            data[date]['states'][state][type] = round(data[date]['states'][state][type])
-        data[date][type] = round(data[date][type])
+            data[date]['states'][state][type] = data[date]['states'][state][type]
+        data[date][type] = data[date][type]
 
 missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
@@ -317,62 +314,92 @@ if len(missingList):
 
 # --------------------------------------------------- Build Videos --------------------------------------------------- #
 
-fps = framesPerDay * 2
-
-try:
-    with open('lastFps.json') as fpsFile:
-        lastFps = json.load(fpsFile)
-except:
-    lastFps = {}
-try:
-    with open('lastFps.json') as fpsFile:
-        lastFps = json.load(fpsFile)
-except:
-    lastFps = {}
 with open('map.html', 'r') as mapFile:
     map = mapFile.read()
 
+def weightedAverage(num1, num2, fraction):
+    return num2*fraction + num1*(1-fraction)
+
+def roundHalfUp(num):
+    return floor(num) if num%1<.5 else ceil(num)
+
+def formatNum(num):
+    return f'{num:,}'
+
+def buildHtml(day1, day2, numer, denom):
+    day2 = day2 or day1
+    date = day1 if 2*numer<denom else day2
+    fraction = numer/denom
+
+    html = map
+    for county in set(data[day1]['counties']) | set(data[day2]['counties']):
+        if county not in missing:
+            numDay1 = data[day1]['counties'][county][type] if county in data[day1]['counties'] else 0
+            numDay2 = data[day2]['counties'][county][type] if county in data[day2]['counties'] else 0
+            numFinal = weightedAverage(numDay1, numDay2, fraction)
+            if numFinal:
+                r = sqrt(numFinal) * buildVideos[type]['scale'] / 100
+                html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + types[type]['circles'] + '"></circle>\n'
+    html += '\n</svg>\n\n'
+
+    for state in set(data[day1]['states']) | set(data[day2]['states']):
+        numDay1 = data[day1]['states'][state][type] if state in data[day1]['states'] else 0
+        numDay2 = data[day2]['states'][state][type] if state in data[day2]['states'] else 0
+        numFinal = roundHalfUp(weightedAverage(numDay1, numDay2, fraction))
+        if numFinal:
+            html += '<div class="point svelte-3fv2ao" style="left: '+ str(states[state]['x']) + '%; top: ' + str(states[state]['y']) + '%">'
+            html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
+            html += '<span class="label ' + types[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(numFinal) + '</span></div></div>\n'
+
+    html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + types[type]['title'] + '</span></div>\n'
+    if type[:6] == 'Daily ':
+        html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(types[type]['lookbackDays']) + '-Day Average</span></div>\n'
+    html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[int(date[5:7])] + str(int(date[8:10])) + '</span></div>\n'
+    html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">'    + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]["cases"]],  data[day2][types[type]["cases"]],  fraction))) + '</span></div>\n'
+    html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]["deaths"]], data[day2][types[type]["deaths"]], fraction))) + '</span></div>\n\n</div></div>'
+
+    return html
+
+def buildImages(htmlFilename, imageFilename, frameFilename):
+    if not os.path.exists(imageFilename):
+        driver = webdriver.Chrome('chromedriver', options = options)
+        driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
+        driver.save_screenshot('images/temp.png')
+        driver.quit()
+
+        image = Image.open('images/temp.png')
+        image = image.crop((10, 30, 1610, 1030))
+        image.save(imageFilename)
+        os.remove('images/temp.png')
+
+    if not os.path.exists(frameFilename):
+        copyfile(imageFilename, frameFilename)
+
+try:
+    with open('lastFpd.json') as fpdFile:
+        lastFpd = json.load(fpdFile)
+except:
+    lastFpd = {}
+
+fps = framesPerDay * daysPerSecond
+
 for type in buildVideos:
-    if type not in lastFps or lastFps[type] != fps:
-        for filename in os.listdir('html/' + type):
-            os.remove('html/' + type + '/' + filename)
+    if type not in lastFpd or lastFpd[type] != framesPerDay:
         for filename in os.listdir('frames/' + type):
             os.remove('frames/' + type + '/' + filename)
-        lastFps[type] = fps
-        with open('lastFps.json', 'w') as fpsFile:
-            json.dump(lastFps, fpsFile)
+        lastFpd[type] = framesPerDay
+        with open('lastFpd.json', 'w') as fpdFile:
+            json.dump(lastFpd, fpdFile)
 
-    types[type]['anyUpdated'] = False
-    i = 0
-    for date in dates:
-        i += 1
+    for i in range(len(dates)):
+        today = dates[i]
+        yesterday = dates[i-1] if i else ''
 
-        month = int(date[5:7])
-        day = int(date[8:10])
+        html = buildHtml(today, '', 0, 1)
 
-        html = map
-        for county in data[date]['counties']:
-            if county not in missing and data[date]['counties'][county][type] > 0:
-                r = sqrt(data[date]['counties'][county][type]) * buildVideos[type]['scale'] / 100
-                html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + types[type]['circles'] + '"></circle>\n'
-
-        html += '\n</svg>\n\n'
-
-        for state in data[date]['states']:
-            if data[date]['states'][state][type] > 0:
-                html += '<div class="point svelte-3fv2ao" style="left: '+ str(states[state]['x']) + '%; top: ' + str(states[state]['y']) + '%">'
-                html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-                html += '<span class="label ' + types[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(data[date]['states'][state][type]) + '</span></div></div>\n'
-
-        html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + types[type]['title'] + '</span></div>\n'
-        if type[:6] == 'Daily ':
-            html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(types[type]['lookbackDays']) + '-Day Average</span></div>\n'
-        html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[month] + str(day) + '</span></div>\n'
-        html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">' + formatNum(data[date][types[type]["cases"]]) + '</span></div>\n'
-        html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(data[date][types[type]["deaths"]]) + '</span></div>\n\n</div></div>'
-
-        htmlFilename = 'html/' + type + '/' + date + '.html'
-        imageFilename = 'frames/' + type + '/frame' + str(i).zfill(4) + '.png'
+        htmlFilename = 'html/' + type + '/' + today + '.000.html'
+        imageFilename = 'images/' + type + '/' + today + '.000.png'
+        frameFilename = 'frames/' + type + '/frame' + str(i*framesPerDay).zfill(5) + '.png'
 
         try:
             with open(htmlFilename, 'r') as oldFile:
@@ -380,37 +407,46 @@ for type in buildVideos:
         except:
             oldHtml = ''
 
-        types[type]['lastUpdated'] = False
         if html != oldHtml or not os.path.exists(imageFilename):
-            types[type]['lastUpdated'] = True
-            types[type]['anyUpdated'] = True
+            for filename in os.listdir('html/' + type):
+                if filename[:10] in [yesterday, today] and filename[-9:] != '.000.html':
+                    os.remove('html/' + type + '/' + filename)
+            for filename in os.listdir('images/' + type):
+                if filename[:10] in [yesterday, today] and filename[-8:] != '.000.png':
+                    os.remove('images/' + type + '/' + filename)
+            try: os.remove(imageFilename)
+            except: pass
+            for j in range((i-1)*framesPerDay+1, (i+1)*framesPerDay):
+                try: os.remove('frames/' + type + '/frame' + str(j).zfill(5) + '.png')
+                except: pass
 
             with open(htmlFilename, 'w') as newFile:
                 newFile.write(html)
 
-            driver = webdriver.Chrome('chromedriver', options = options)
-            driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
-            driver.save_screenshot('frames/temp.png')
-            driver.quit()
+        buildImages(htmlFilename, imageFilename, frameFilename)
 
-            image = Image.open('frames/temp.png')
-            image = image.crop((10, 30, 1610, 1030))
-            image.save(imageFilename)
-            os.remove('frames/temp.png')
+        if yesterday:
+            for j in range(1, framesPerDay):
+                if i < 20:
+                    date = yesterday if 2*j<framesPerDay else today
+                    htmlFilename = 'html/' + type + '/' + date + '.000.html'
+                    imageFilename = 'images/' + type + '/' + date + '.000.png'
+                else:
+                    decimal = f'{j/framesPerDay:0.3f}'[1:]
+                    htmlFilename = 'html/' + type + '/' + yesterday + decimal + '.html'
+                    imageFilename = 'images/' + type + '/' + yesterday + decimal + '.png'
+                frameFilename = 'frames/' + type + '/frame' + str((i-1)*framesPerDay+j).zfill(5) + '.png'
 
-    for j in range(i+1, i+fps*5+1):
-        copyFilename = 'frames/' + type + '/frame' + str(j).zfill(4) + '.png'
-        if types[type]['lastUpdated'] or not os.path.exists(copyFilename):
-            shutil.copyfile(imageFilename, copyFilename)
-            types[type]['anyUpdated'] = True
+                if not os.path.exists(htmlFilename):
+                    with open(htmlFilename, 'w') as newFile:
+                        newFile.write(buildHtml(yesterday, today, j, framesPerDay))
 
-    badFilename = 'frames/' + type + '/frame' + str(i+fps*5+1).zfill(4) + '.png'
-    if os.path.exists(badFilename):
-        print('Too many frames:', badFilename)
-        exit()
+                buildImages(htmlFilename, imageFilename, frameFilename)
 
-    videoFilename = 'videos/' + str(types[type]['index']) + ' ' + type + '.mp4'
-    if types[type]['anyUpdated'] and os.path.exists(videoFilename):
-        os.remove(videoFilename)
-    if not os.path.exists(videoFilename):
-        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%04d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "' + videoFilename + '"')
+    lastFrame = (len(dates)-1)*framesPerDay
+    lastFrameFileName = 'frames/' + type + '/frame' + str(lastFrame).zfill(5) + '.png'
+    for j in range(lastFrame+1, lastFrame+fps*5+1):
+        copyFilename = 'frames/' + type + '/frame' + str(j).zfill(5) + '.png'
+        copyfile(lastFrameFilename, copyFilename)
+
+    os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + str(types[type]['index']) + ' ' + type + '.mp4" -y')
