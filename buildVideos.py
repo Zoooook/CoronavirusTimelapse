@@ -382,6 +382,7 @@ except:
     lastFpd = {}
 
 fps = framesPerDay * daysPerSecond
+frameOffset = framesPerDay // 2 + 1
 
 for type in buildVideos:
     if type not in lastFpd or lastFpd[type] != framesPerDay:
@@ -399,7 +400,7 @@ for type in buildVideos:
 
         htmlFilename = 'html/' + type + '/' + today + '.000.html'
         imageFilename = 'images/' + type + '/' + today + '.000.png'
-        frameFilename = 'frames/' + type + '/frame' + str(i*framesPerDay).zfill(5) + '.png'
+        frameFilename = 'frames/' + type + '/frame' + str(frameOffset+i*framesPerDay).zfill(5) + '.png'
 
         try:
             with open(htmlFilename, 'r') as oldFile:
@@ -416,7 +417,7 @@ for type in buildVideos:
                     os.remove('images/' + type + '/' + filename)
             try: os.remove(imageFilename)
             except: pass
-            for j in range((i-1)*framesPerDay+1, (i+1)*framesPerDay):
+            for j in range(frameOffset+(i-1)*framesPerDay+1, frameOffest+(i+1)*framesPerDay):
                 try: os.remove('frames/' + type + '/frame' + str(j).zfill(5) + '.png')
                 except: pass
 
@@ -425,8 +426,10 @@ for type in buildVideos:
 
         buildImages(htmlFilename, imageFilename, frameFilename)
 
-        if yesterday:
-            for j in range(1, framesPerDay):
+        for j in range(1, framesPerDay):
+            frame = frameOffset + (i-1)*framesPerDay + j
+            if frame > 0:
+                frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
                 if i < 20:
                     date = yesterday if 2*j<framesPerDay else today
                     htmlFilename = 'html/' + type + '/' + date + '.000.html'
@@ -435,15 +438,13 @@ for type in buildVideos:
                     decimal = f'{j/framesPerDay:0.3f}'[1:]
                     htmlFilename = 'html/' + type + '/' + yesterday + decimal + '.html'
                     imageFilename = 'images/' + type + '/' + yesterday + decimal + '.png'
-                frameFilename = 'frames/' + type + '/frame' + str((i-1)*framesPerDay+j).zfill(5) + '.png'
 
                 if not os.path.exists(htmlFilename):
                     with open(htmlFilename, 'w') as newFile:
                         newFile.write(buildHtml(yesterday, today, j, framesPerDay))
-
                 buildImages(htmlFilename, imageFilename, frameFilename)
 
-    lastFrame = (len(dates)-1)*framesPerDay
+    lastFrame = frameOffset + (len(dates)-1) * framesPerDay
     lastFrameFileName = 'frames/' + type + '/frame' + str(lastFrame).zfill(5) + '.png'
     for j in range(lastFrame+1, lastFrame+fps*5+1):
         copyFilename = 'frames/' + type + '/frame' + str(j).zfill(5) + '.png'
