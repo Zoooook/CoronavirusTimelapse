@@ -317,6 +317,8 @@ if len(missingList):
 with open('map.html', 'r') as mapFile:
     map = mapFile.read()
 
+driver = webdriver.Chrome('chromedriver', options = options)
+
 def weightedAverage(num1, num2, fraction):
     return num2*fraction + num1*(1-fraction)
 
@@ -362,10 +364,8 @@ def buildHtml(day1, day2, numer, denom):
 
 def buildImages(htmlFilename, imageFilename, frameFilename):
     if not os.path.exists(imageFilename):
-        driver = webdriver.Chrome('chromedriver', options = options)
         driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
         driver.save_screenshot('images/temp.png')
-        driver.quit()
 
         image = Image.open('images/temp.png')
         image = image.crop((10, 30, 1610, 1030))
@@ -417,7 +417,7 @@ for type in buildVideos:
                     os.remove('images/' + type + '/' + filename)
             try: os.remove(imageFilename)
             except: pass
-            for j in range(frameOffset+(i-1)*framesPerDay+1, frameOffest+(i+1)*framesPerDay):
+            for j in range(frameOffset+(i-1)*framesPerDay+1, frameOffset+(i+1)*framesPerDay):
                 try: os.remove('frames/' + type + '/frame' + str(j).zfill(5) + '.png')
                 except: pass
 
@@ -445,9 +445,11 @@ for type in buildVideos:
                 buildImages(htmlFilename, imageFilename, frameFilename)
 
     lastFrame = frameOffset + (len(dates)-1) * framesPerDay
-    lastFrameFileName = 'frames/' + type + '/frame' + str(lastFrame).zfill(5) + '.png'
+    lastFrameFilename = 'frames/' + type + '/frame' + str(lastFrame).zfill(5) + '.png'
     for j in range(lastFrame+1, lastFrame+fps*5+1):
         copyFilename = 'frames/' + type + '/frame' + str(j).zfill(5) + '.png'
         copyfile(lastFrameFilename, copyFilename)
 
     os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + str(types[type]['index']) + ' ' + type + '.mp4" -y')
+
+driver.quit()
