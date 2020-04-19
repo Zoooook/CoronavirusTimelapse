@@ -396,8 +396,6 @@ for type in buildVideos:
         today = dates[i]
         yesterday = dates[i-1] if i else ''
 
-        html = buildHtml(today, '', 0, 1)
-
         htmlFilename = 'html/' + type + '/' + today + '.000.html'
         imageFilename = 'images/' + type + '/' + today + '.000.png'
         frameFilename = 'frames/' + type + '/frame' + str(frameOffset+i*framesPerDay).zfill(5) + '.png'
@@ -408,7 +406,9 @@ for type in buildVideos:
         except:
             oldHtml = ''
 
-        if html != oldHtml or not os.path.exists(imageFilename):
+        html = buildHtml(today, '', 0, 1)
+
+        if html != oldHtml:
             for filename in os.listdir('html/' + type):
                 if filename[:10] in [yesterday, today] and filename[-9:] != '.000.html':
                     os.remove('html/' + type + '/' + filename)
@@ -424,7 +424,7 @@ for type in buildVideos:
             with open(htmlFilename, 'w') as newFile:
                 newFile.write(html)
 
-        buildImages(htmlFilename, imageFilename, frameFilename)
+        args = [htmlFilename, imageFilename, frameFilename]
 
         for j in range(1, framesPerDay):
             frame = frameOffset + (i-1)*framesPerDay + j
@@ -443,6 +443,8 @@ for type in buildVideos:
                     with open(htmlFilename, 'w') as newFile:
                         newFile.write(buildHtml(yesterday, today, j, framesPerDay))
                 buildImages(htmlFilename, imageFilename, frameFilename)
+
+        buildImages(*args)
 
     lastFrame = frameOffset + (len(dates)-1) * framesPerDay
     lastFrameFilename = 'frames/' + type + '/frame' + str(lastFrame).zfill(5) + '.png'
