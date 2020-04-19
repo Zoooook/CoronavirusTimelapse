@@ -332,7 +332,7 @@ def buildHtml(day1, day2, numer, denom):
     fraction = numer/denom
 
     html = map
-    for county in set(data[day1]['counties']) | set(data[day2]['counties']):
+    for county in sorted(set(data[day1]['counties']) | set(data[day2]['counties'])):
         if county not in missing:
             numDay1 = data[day1]['counties'][county][type] if county in data[day1]['counties'] else 0
             numDay2 = data[day2]['counties'][county][type] if county in data[day2]['counties'] else 0
@@ -342,7 +342,7 @@ def buildHtml(day1, day2, numer, denom):
                 html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + types[type]['circles'] + '"></circle>\n'
     html += '\n</svg>\n\n'
 
-    for state in set(data[day1]['states']) | set(data[day2]['states']):
+    for state in sorted(set(data[day1]['states']) | set(data[day2]['states'])):
         numDay1 = data[day1]['states'][state][type] if state in data[day1]['states'] else 0
         numDay2 = data[day2]['states'][state][type] if state in data[day2]['states'] else 0
         numFinal = roundHalfUp(weightedAverage(numDay1, numDay2, fraction))
