@@ -297,13 +297,13 @@ for row in csvData[1:]:
             subtrahend = data[lookbackDay]['counties'][key][totalType] if key in data[lookbackDay]['counties'] else 0
             data[today]['counties'][key][type] = max(0, (data[today]['counties'][key][totalType] - subtrahend) / types[type]['lookbackDays'])
 
-for i in range(21, len(dates)):
-    today = dates[i]
+for type in sorted(types, key = typeSort):
+    totalType = type.replace('Daily', 'Total')
+    rawType = type.replace(' Per Capita', '')
 
-    for type in sorted(types, key = typeSort):
+    for i in range(21, len(dates)):
+        today = dates[i]
         lookbackDay = dates[i-types[type]['lookbackDays']]
-        totalType = type.replace('Daily', 'Total')
-        rawType = type.replace(' Per Capita', '')
 
         if type[:6] == 'Daily ' and type[-6:] != 'Capita':
             for state in data[today]['states']:
@@ -321,7 +321,6 @@ for i in range(21, len(dates)):
             lookbackDays = types[altType]['lookbackDays']
             data[today][type + ' for ' + altType.split(' ')[1]] = max(0, (data[today][totalType] - data[dates[i-lookbackDays]][totalType]) / lookbackDays)
 
-for type in types:
     if type in buildVideos:
         types[type]['frameOffset'] -= (dates.index('2020-'+buildVideos[type]['startDate']) - 1) * framesPerDay
 
