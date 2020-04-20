@@ -335,8 +335,6 @@ if len(missingList):
 with open('map.html', 'r') as mapFile:
     map = mapFile.read()
 
-browserOpen = False
-
 def weightedAverage(num1, num2, fraction):
     return num2*fraction + num1*(1-fraction)
 
@@ -385,7 +383,7 @@ def deleteFile(filename):
     try: os.remove(filename)
     except: pass
 
-def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame, type):
+def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame, type, browserOpen):
     if (frame > 0 or not dailyFrame) and '2019' not in htmlFilename:
         try:
             with open(htmlFilename, 'r') as oldFile:
@@ -412,12 +410,14 @@ def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, daily
             image.save(imageFilename)
             os.remove('images/temp.png')
         if not os.path.exists(frameFilename):
-            lastValues[type]['modified'] = True
-            with open('lastValues.json', 'w') as valuesFile:
-                json.dump(lastValues, valuesFile)
+            if not lastValues[type]['modified']:
+                lastValues[type]['modified'] = True
+                with open('lastValues.json', 'w') as valuesFile:
+                    json.dump(lastValues, valuesFile)
             copyfile(imageFilename, frameFilename)
 
 fps = framesPerDay * daysPerSecond
+browserOpen = False
 
 try:
     with open('lastValues.json') as valuesFile:
@@ -452,12 +452,16 @@ for type in buildVideos:
                 imageFilename = 'images/' + type + '/' + today + decimal + '.png'
             frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
             frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
-            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type)
+            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type, browserOpen)
             if not tomorrow and not j:
                 break
 
     for i in range(frame+1, frame+fps*5+1):
         copyFilename = 'frames/' + type + '/frame' + str(i).zfill(5) + '.png'
+        if not os.path.exists(copyFilename) and not lastValues[type]['modified']:
+            lastValues[type]['modified'] = True
+            with open('lastValues.json', 'w') as valuesFile:
+                json.dump(lastValues, valuesFile)
         copyfile(frameFilename, copyFilename)
 
     if lastValues[type]['modified']:
