@@ -74,15 +74,18 @@ for type in types:
     types[type]['title']  = type.replace('Capita', 'Million People')
     types[type]['cases']  = type.replace('Deaths', 'Cases')
     types[type]['deaths'] = type.replace('Cases', 'Deaths')
-    typeWords = type.split(' ')
-    if typeWords[1] == 'Cases':
+    if type.split(' ')[1] == 'Cases':
         types[type]['circles'] = 'red'
         types[type]['labels'] = 'black'
         types[type]['lookbackDays'] = casesLookbackDays
+        if type[:6] == 'Daily ':
+            types[type]['deaths'] = types[type]['deaths'] + ' for Cases'
     else:
         types[type]['circles'] = 'black'
         types[type]['labels'] = 'aqua'
         types[type]['lookbackDays'] = deathsLookbackDays
+        if type[:6] == 'Daily ':
+            types[type]['cases'] = types[type]['cases'] + ' for Deaths'
 
 states = {
     'AL': {'name': 'Alabama'},
@@ -221,6 +224,14 @@ for row in population:
 
 # ------------------------------------------------- Get Dynamic Data ------------------------------------------------- #
 
+def typeSort(type):
+    t = 0
+    if type[:6] == 'Daily ':
+        t += 1
+    if type[-6:] == 'Capita':
+        t += 2
+    return t
+
 response = urlopen('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
 file = csv.reader(iterdecode(response, 'utf-8'))
 
@@ -230,7 +241,14 @@ for line in file:
 
 missing = {}
 dates = ['2019-12-31']
-data = {'2019-12-31': {'counties': {}, 'states': {}}}
+data = {'2019-12-31': {
+    'counties': {},
+    'states': {},
+    'Daily Cases for Deaths': 0,
+    'Daily Deaths for Cases': 0,
+    'Daily Cases Per Capita for Deaths': 0,
+    'Daily Deaths Per Capita for Cases': 0,
+}}
 for day in range(1, 21):
     date = '2020-01-' + str(day).zfill(2)
     dates.append(date)
@@ -261,41 +279,49 @@ for row in csvData[1:]:
         'Total Deaths': int(row[5]),
     }
 
-    def typeSort(type):
-        t = 0
-        if type[:6] == 'Daily ':
-            t += 1
-        if type[-6:] == 'Capita':
-            t += 2
-        return t
-
     # this is the sorted() parameter 'key', not the variable
     for type in sorted(types, key = typeSort):
         lookbackDay = dates[-1-types[type]['lookbackDays']]
 
-        if type[:6] == 'Total ' and type[-6:] == 'Capita':
-            data[today]['counties'][key][type] = 0
-            if key in counties:
-                rawType = type.replace(' Per Capita', '')
-                data[today]['counties'][key][type] = data[today]['counties'][key][rawType] * 1000000 / counties[key]['population']
-        if type[:6] == 'Daily ':
+        if type[:6] == 'Total ':
+            if type[-6:] == 'Capita':
+                data[today]['counties'][key][type] = 0
+                if key in counties:
+                    rawType = type.replace(' Per Capita', '')
+                    data[today]['counties'][key][type] = data[today]['counties'][key][rawType] * 1000000 / counties[key]['population']
+            else:
+                data[today]['states'][state][type] += data[today]['counties'][key][type]
+                data[today][type]                  += data[today]['counties'][key][type]
+        else:
             totalType = type.replace('Daily', 'Total')
             subtrahend = data[lookbackDay]['counties'][key][totalType] if key in data[lookbackDay]['counties'] else 0
-            data[today]['counties'][key][type] = (data[today]['counties'][key][totalType] - subtrahend) / types[type]['lookbackDays']
-            if  data[today]['counties'][key][type] < 0:
-                data[today]['counties'][key][type] = 0
+            data[today]['counties'][key][type] = max(0, (data[today]['counties'][key][totalType] - subtrahend) / types[type]['lookbackDays'])
 
-        if type[-6:] != 'Capita':
-            data[today]['states'][state][type] += data[today]['counties'][key][type]
-            data[today][type]                  += data[today]['counties'][key][type]
+for i in range(21, len(dates)):
+    today = dates[i]
+
+    for type in sorted(types, key = typeSort):
+        lookbackDay = dates[i-types[type]['lookbackDays']]
+        totalType = type.replace('Daily', 'Total')
+        rawType = type.replace(' Per Capita', '')
+
+        if type[:6] == 'Daily ' and type[-6:] != 'Capita':
+            for state in data[today]['states']:
+                subtrahend = data[lookbackDay]['states'][state][totalType] if state in data[lookbackDay]['states'] else 0
+                data[today]['states'][state][type] = max(0, (data[today]['states'][state][totalType] - subtrahend) / types[type]['lookbackDays'])
+            data[today][type] = max(0, (data[today][totalType] - data[lookbackDay][totalType]) / types[type]['lookbackDays'])
+
+        if type[-6:] == 'Capita':
+            for state in data[today]['states']:
+                data[today]['states'][state][type] = data[today]['states'][state][rawType] * 1000000 / states[state]['population']
+            data[today][type] = data[today][rawType] * 1000000 / totalPopulation
+
+        if type[:6] == 'Daily ':
+            altType = type.replace('Cases', 'Deaths') if type.split(' ')[1] == 'Cases' else type.replace('Deaths', 'Cases')
+            lookbackDays = types[altType]['lookbackDays']
+            data[today][type + ' for ' + altType.split(' ')[1]] = max(0, (data[today][totalType] - data[dates[i-lookbackDays]][totalType]) / lookbackDays)
 
 for type in types:
-    if type[-6:] == 'Capita':
-        rawType = type.replace(' Per Capita', '')
-        for date in dates:
-            for state in data[date]['states']:
-                data[date]['states'][state][type] = data[date]['states'][state][rawType] * 1000000 / states[state]['population']
-            data[date][type] = data[date][rawType] * 1000000 / totalPopulation
     if type in buildVideos:
         types[type]['frameOffset'] -= (dates.index('2020-'+buildVideos[type]['startDate']) - 1) * framesPerDay
 
@@ -360,31 +386,31 @@ def deleteFile(filename):
     try: os.remove(filename)
     except: pass
 
-def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename):
-    try:
-        with open(htmlFilename, 'r') as oldFile:
-            oldHtml = oldFile.read()
-    except:
-        oldHtml = ''
+def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame):
+    if (frame > 0 or not dailyFrame) and '2019' not in htmlFilename:
+        try:
+            with open(htmlFilename, 'r') as oldFile:
+                oldHtml = oldFile.read()
+        except:
+            oldHtml = ''
+        if newHtml != oldHtml:
+            deleteFile(imageFilename)
+            with open(htmlFilename, 'w') as newFile:
+                newFile.write(newHtml)
 
-    if newHtml != oldHtml:
-        deleteFile(imageFilename)
-        with open(htmlFilename, 'w') as newFile:
-            newFile.write(newHtml)
+    if frame > 0:
+        if not os.path.exists(imageFilename):
+            deleteFile(frameFilename)
 
-    if not os.path.exists(imageFilename):
-        deleteFile(frameFilename)
+            driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
+            driver.save_screenshot('images/temp.png')
 
-        driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
-        driver.save_screenshot('images/temp.png')
-
-        image = Image.open('images/temp.png')
-        image = image.crop((10, 30, 1610, 1030))
-        image.save(imageFilename)
-        os.remove('images/temp.png')
-
-    if not os.path.exists(frameFilename):
-        copyfile(imageFilename, frameFilename)
+            image = Image.open('images/temp.png')
+            image = image.crop((10, 30, 1610, 1030))
+            image.save(imageFilename)
+            os.remove('images/temp.png')
+        if not os.path.exists(frameFilename):
+            copyfile(imageFilename, frameFilename)
 
 try:
     with open('lastParams.json') as paramFile:
@@ -407,18 +433,17 @@ for type in buildVideos:
         today = dates[i]
         tomorrow = dates[i+1] if i+1<len(dates) else ''
         for j in range(0, framesPerDay):
+            if i < 20:
+                date = today if 2*j<framesPerDay else tomorrow
+                htmlFilename = 'html/' + type + '/' + date + '.000.html'
+                imageFilename = 'images/' + type + '/' + date + '.000.png'
+            else:
+                decimal = f'{j/framesPerDay:0.3f}'[1:]
+                htmlFilename = 'html/' + type + '/' + today + decimal + '.html'
+                imageFilename = 'images/' + type + '/' + today + decimal + '.png'
             frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
-            if frame > 0:
-                if i < 20:
-                    date = today if 2*j<framesPerDay else tomorrow
-                    htmlFilename = 'html/' + type + '/' + date + '.000.html'
-                    imageFilename = 'images/' + type + '/' + date + '.000.png'
-                else:
-                    decimal = f'{j/framesPerDay:0.3f}'[1:]
-                    htmlFilename = 'html/' + type + '/' + today + decimal + '.html'
-                    imageFilename = 'images/' + type + '/' + today + decimal + '.png'
-                frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
-                buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename)
+            frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
+            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j)
             if not tomorrow and not j:
                 break
 
