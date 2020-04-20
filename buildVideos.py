@@ -335,7 +335,7 @@ if len(missingList):
 with open('map.html', 'r') as mapFile:
     map = mapFile.read()
 
-driver = webdriver.Chrome('chromedriver', options = options)
+browserOpen = False
 
 def weightedAverage(num1, num2, fraction):
     return num2*fraction + num1*(1-fraction)
@@ -401,6 +401,9 @@ def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, daily
         if not os.path.exists(imageFilename):
             deleteFile(frameFilename)
 
+            if not browserOpen:
+                driver = webdriver.Chrome('chromedriver', options = options)
+                browserOpen = True
             driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
             driver.save_screenshot('images/temp.png')
 
@@ -463,4 +466,5 @@ for type in buildVideos:
         with open('lastValues.json', 'w') as valuesFile:
             json.dump(lastValues, valuesFile)
 
-driver.quit()
+if browserOpen:
+    driver.quit()
