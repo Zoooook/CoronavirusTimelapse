@@ -385,7 +385,7 @@ def deleteFile(filename):
     try: os.remove(filename)
     except: pass
 
-def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame):
+def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame, type):
     if (frame > 0 or not dailyFrame) and '2019' not in htmlFilename:
         try:
             with open(htmlFilename, 'r') as oldFile:
@@ -409,24 +409,31 @@ def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, daily
             image.save(imageFilename)
             os.remove('images/temp.png')
         if not os.path.exists(frameFilename):
+            lastValues[type]['modified'] = True
+            with open('lastValues.json', 'w') as valuesFile:
+                json.dump(lastValues, valuesFile)
             copyfile(imageFilename, frameFilename)
-
-try:
-    with open('lastParams.json') as paramFile:
-        lastParams = json.load(paramFile)
-except:
-    lastParams = {}
 
 fps = framesPerDay * daysPerSecond
 
+try:
+    with open('lastValues.json') as valuesFile:
+        lastValues = json.load(valuesFile)
+except:
+    lastValues = {}
+
 for type in buildVideos:
+    if type not in lastValues:
+        lastValues[type] = {'params': {}, 'modified': True}
+
     params = {'framesPerDay': framesPerDay, 'startDate': buildVideos[type]['startDate']}
-    if type not in lastParams or lastParams[type] != params:
+    if lastValues[type]['params'] != params:
         for filename in os.listdir('frames/' + type):
             os.remove('frames/' + type + '/' + filename)
-        lastParams[type] = params
-        with open('lastParams.json', 'w') as paramFile:
-            json.dump(lastParams, paramFile)
+        lastValues[type]['modified'] = True
+        lastValues[type]['params'] = params
+        with open('lastValues.json', 'w') as valuesFile:
+            json.dump(lastValues, valuesFile)
 
     for i in range(len(dates)):
         today = dates[i]
@@ -442,7 +449,7 @@ for type in buildVideos:
                 imageFilename = 'images/' + type + '/' + today + decimal + '.png'
             frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
             frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
-            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j)
+            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type)
             if not tomorrow and not j:
                 break
 
@@ -450,6 +457,10 @@ for type in buildVideos:
         copyFilename = 'frames/' + type + '/frame' + str(i).zfill(5) + '.png'
         copyfile(frameFilename, copyFilename)
 
-    os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + str(types[type]['index']) + ' ' + type + '.mp4" -y')
+    if lastValues[type]['modified']:
+        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + str(types[type]['index']) + ' ' + type + '.mp4" -y')
+        lastValues[type]['modified'] = False
+        with open('lastValues.json', 'w') as valuesFile:
+            json.dump(lastValues, valuesFile)
 
 driver.quit()
