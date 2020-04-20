@@ -43,6 +43,7 @@ for dir in dirs:
 options = webdriver.ChromeOptions()
 options.add_argument('--kiosk')
 options.add_experimental_option('excludeSwitches', ['enable-automation'])
+driver = None
 
 monthMap = {
     1: 'January ',
@@ -383,7 +384,9 @@ def deleteFile(filename):
     try: os.remove(filename)
     except: pass
 
-def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame, type, browserOpen):
+def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, dailyFrame, type):
+    global driver
+
     if (frame > 0 or not dailyFrame) and '2019' not in htmlFilename:
         try:
             with open(htmlFilename, 'r') as oldFile:
@@ -399,9 +402,8 @@ def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, daily
         if not os.path.exists(imageFilename):
             deleteFile(frameFilename)
 
-            if not browserOpen:
+            if not driver:
                 driver = webdriver.Chrome('chromedriver', options = options)
-                browserOpen = True
             driver.get('file:///' + os.getcwd().replace('\\','/') + '/' + htmlFilename)
             driver.save_screenshot('images/temp.png')
 
@@ -417,7 +419,6 @@ def buildFiles(newHtml, htmlFilename, imageFilename, frameFilename, frame, daily
             copyfile(imageFilename, frameFilename)
 
 fps = framesPerDay * daysPerSecond
-browserOpen = False
 
 try:
     with open('lastValues.json') as valuesFile:
@@ -452,7 +453,7 @@ for type in buildVideos:
                 imageFilename = 'images/' + type + '/' + today + decimal + '.png'
             frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
             frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
-            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type, browserOpen)
+            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type)
             if not tomorrow and not j:
                 break
 
@@ -470,5 +471,5 @@ for type in buildVideos:
         with open('lastValues.json', 'w') as valuesFile:
             json.dump(lastValues, valuesFile)
 
-if browserOpen:
+if driver:
     driver.quit()
