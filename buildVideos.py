@@ -1,14 +1,14 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
 buildVideos = {
-    'Total Cases':             {'startDate': '01-15', 'scale': 2},
-    'Total Deaths':            {'startDate': '02-15', 'scale': 4},
-    'Daily Cases':             {'startDate': '02-01', 'scale': 5},
-    'Daily Deaths':            {'startDate': '02-15', 'scale': 10},
-    'Total Cases Per Capita':  {'startDate': '02-15', 'scale': 1},
-    'Total Deaths Per Capita': {'startDate': '03-01', 'scale': 2},
-    'Daily Cases Per Capita':  {'startDate': '03-01', 'scale': 3},
-    'Daily Deaths Per Capita': {'startDate': '03-01', 'scale': 6},
+    'Total Cases':             {'startDate': '01-16', 'scale': 2},
+    'Total Deaths':            {'startDate': '02-24', 'scale': 4},
+    'Daily Cases':             {'startDate': '01-20', 'scale': 5},
+    'Daily Deaths':            {'startDate': '02-25', 'scale': 10},
+    'Total Cases Per Capita':  {'startDate': '02-12', 'scale': 1},
+    'Total Deaths Per Capita': {'startDate': '02-26', 'scale': 2},
+    'Daily Cases Per Capita':  {'startDate': '02-12', 'scale': 3},
+    'Daily Deaths Per Capita': {'startDate': '02-29', 'scale': 6},
 }
 
 casesLookbackDays = 3
