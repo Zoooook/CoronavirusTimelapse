@@ -1,22 +1,22 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
 videoTypes = {
-    'Total County Cases':             {'startDate': '01-16', 'scale': 2,  'index': 1},
-    'Total County Deaths':            {'startDate': '02-24', 'scale': 4,  'index': 2},
-    'Total State Cases':              {'startDate': '01-16', 'scale': .5, 'index': 3},
-    'Total State Deaths':             {'startDate': '02-24', 'scale': 1,  'index': 4},
-    'Daily County Cases':             {'startDate': '01-20', 'scale': 5,  'index': 5},
-    'Daily County Deaths':            {'startDate': '02-25', 'scale': 10, 'index': 6},
-    'Daily State Cases':              {'startDate': '01-20', 'scale': 5,  'index': 7},
-    'Daily State Deaths':             {'startDate': '02-25', 'scale': 10, 'index': 8},
-    'Total County Cases Per Capita':  {'startDate': '02-12', 'scale': 1,  'index': 9},
-    'Total County Deaths Per Capita': {'startDate': '02-26', 'scale': 2,  'index': 10},
-    'Total State Cases Per Capita':   {'startDate': '02-12', 'scale': 2,  'index': 11},
-    'Total State Deaths Per Capita':  {'startDate': '02-26', 'scale': 4,  'index': 12},
-    'Daily County Cases Per Capita':  {'startDate': '02-12', 'scale': 3,  'index': 13},
-    'Daily County Deaths Per Capita': {'startDate': '02-29', 'scale': 6,  'index': 14},
-    'Daily State Cases Per Capita':   {'startDate': '02-12', 'scale': 15, 'index': 15},
-    'Daily State Deaths Per Capita':  {'startDate': '02-29', 'scale': 30, 'index': 16},
+    'Total County Cases':             {'startDate': '01-16', 'scale': 2,  'index': '01'},
+    'Total County Deaths':            {'startDate': '02-24', 'scale': 4,  'index': '02'},
+    'Total State Cases':              {'startDate': '01-16', 'scale': .5, 'index': '03'},
+    'Total State Deaths':             {'startDate': '02-24', 'scale': 1,  'index': '04'},
+    'Daily County Cases':             {'startDate': '01-20', 'scale': 5,  'index': '05'},
+    'Daily County Deaths':            {'startDate': '02-25', 'scale': 10, 'index': '06'},
+    'Daily State Cases':              {'startDate': '01-20', 'scale': 5,  'index': '07'},
+    'Daily State Deaths':             {'startDate': '02-25', 'scale': 10, 'index': '08'},
+    'Total County Cases Per Capita':  {'startDate': '02-12', 'scale': 1,  'index': '09'},
+    'Total County Deaths Per Capita': {'startDate': '02-26', 'scale': 2,  'index': '10'},
+    'Total State Cases Per Capita':   {'startDate': '02-12', 'scale': 2,  'index': '11'},
+    'Total State Deaths Per Capita':  {'startDate': '02-26', 'scale': 4,  'index': '12'},
+    'Daily County Cases Per Capita':  {'startDate': '02-12', 'scale': 3,  'index': '13'},
+    'Daily County Deaths Per Capita': {'startDate': '02-29', 'scale': 6,  'index': '14'},
+    'Daily State Cases Per Capita':   {'startDate': '02-12', 'scale': 15, 'index': '15'},
+    'Daily State Deaths Per Capita':  {'startDate': '02-29', 'scale': 30, 'index': '16'},
 }
 
 casesLookbackDays = 3
@@ -490,7 +490,7 @@ for type in videoTypes:
                 json.dump(lastValues, valuesFile)
         copyfile(frameFilename, copyFilename)
 
-    videoFilename = 'videos/' + str(videoTypes[type]['index']) + ' ' + type + '.mp4'
+    videoFilename = 'videos/' + videoTypes[type]['index'] + ' ' + type + '.mp4'
     if lastValues[type]['modified'] or not os.path.exists(videoFilename):
         os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "' + videoFilename + '" -y')
         lastValues[type]['modified'] = False
