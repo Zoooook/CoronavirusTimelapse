@@ -155,8 +155,8 @@ for state in states:
 
 # ------------------------------------------------- Get Static Data -------------------------------------------------- #
 
-response = urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_states_centroids.json')
-stateData = json.loads(response.read())
+with open('static/us_states_centroids.json') as stateFile:
+    stateData = json.load(stateFile)
 
 for state in stateData['features']:
     if state['geometry'] is not None:
@@ -184,13 +184,13 @@ states['GU']['y'] = 89
 states['MP']['x'] = 71
 states['MP']['y'] = 89
 
-response = urlopen('https://static01.nyt.com/newsgraphics/2020/03/16/coronavirus-maps/51a3a94e6fc49506549d9cfad8fd567653c2b2a3/slip-map/usa/us_counties_centroids.json')
-countyData = json.loads(response.read())
+with open('static/us_counties_centroids.json') as countyFile:
+    countyData = json.load(countyFile)
 
 counties = {}
 for county in countyData['features']:
-    if  county['properties']['displayname'] == 'Doña Ana':
-        county['properties']['displayname'] =  'Dona Ana'
+    if county['properties']['fips'] == '35013':
+        county['properties']['displayname'] = 'Dona Ana'
     counties[county['properties']['st'] + ':' + county['properties']['displayname']] = {
         'x': 50   + 2.325 * county['geometry']['coordinates'][0],
         'y': 32.1 - 2.345 * county['geometry']['coordinates'][1],
@@ -212,7 +212,7 @@ def countyKey(key):
         return key[:-5] + ' City'
     return key
 
-with open('population.json') as popFile:
+with open('static/population.json') as popFile:
     population = json.load(popFile)
 totalPopulation = 0
 for row in population:
@@ -333,7 +333,7 @@ if len(missingList):
 
 # --------------------------------------------------- Build Videos --------------------------------------------------- #
 
-with open('map.html', 'r') as mapFile:
+with open('static/map.html', 'r') as mapFile:
     map = mapFile.read()
 
 def weightedAverage(num1, num2, fraction):
@@ -465,8 +465,9 @@ for type in buildVideos:
                 json.dump(lastValues, valuesFile)
         copyfile(frameFilename, copyFilename)
 
-    if lastValues[type]['modified']:
-        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "videos/' + str(types[type]['index']) + ' ' + type + '.mp4" -y')
+    videoFilename = 'videos/' + str(types[type]['index']) + ' ' + type + '.mp4'
+    if lastValues[type]['modified'] or not os.path.exists(videoFilename):
+        os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "' + videoFilename + '" -y')
         lastValues[type]['modified'] = False
         with open('lastValues.json', 'w') as valuesFile:
             json.dump(lastValues, valuesFile)
