@@ -1,7 +1,4 @@
-/old/originals/*.txt
-/old/html
-/old/images
-/old/frames
+.gitignore
 /html
 /images
 /frames
