@@ -383,15 +383,15 @@ def buildHtml(day1, day2, type, numer, denom):
     for state in sorted(set(data[day1]['states']) | set(data[day2]['states'])):
         numDay1 = data[day1]['states'][state][dataType] if state in data[day1]['states'] else 0
         numDay2 = data[day2]['states'][state][dataType] if state in data[day2]['states'] else 0
-        numFinal = roundHalfUp(weightedAverage(numDay1, numDay2, fraction))
-        if numFinal:
-            if type.split(' ')[1] == 'County':
+        numFinal = weightedAverage(numDay1, numDay2, fraction)
+        if type.split(' ')[1] == 'County':
+            if roundHalfUp(numFinal) > 0:
                 html += '<div class="point svelte-3fv2ao" style="left: '+ str(states[state]['labelx']) + '%; top: ' + str(states[state]['labely']) + '%">'
                 html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-                html += '<span class="label ' + videoTypes[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + videoTypes[type]['labels'] + '">' + formatNum(numFinal) + '</span></div></div>\n'
-            elif state not in ['PR', 'VI', 'GU', 'MP']:
-                r = sqrt(numFinal) * videoTypes[type]['scale'] / 100
-                html += '<circle cx="' + str(states[state]['x']) + '" cy="' + str(states[state]['y']) + '" r="' + str(r) + '" class="' + videoTypes[type]['circles'] + '"></circle>\n'
+                html += '<span class="label ' + videoTypes[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + videoTypes[type]['labels'] + '">' + formatNum(roundHalfUp(numFinal)) + '</span></div></div>\n'
+        elif state not in ['PR', 'VI', 'GU', 'MP'] and numFinal > 0:
+            r = sqrt(numFinal) * videoTypes[type]['scale'] / 100
+            html += '<circle cx="' + str(states[state]['x']) + '" cy="' + str(states[state]['y']) + '" r="' + str(r) + '" class="' + videoTypes[type]['circles'] + '"></circle>\n'
 
     if type.split(' ')[1] == 'State':
         html += '\n</svg>\n\n'
