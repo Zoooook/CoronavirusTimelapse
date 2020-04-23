@@ -1,6 +1,0 @@
-.gitignore
-/html
-/images
-/frames
-lastValues.json
-test*.py
