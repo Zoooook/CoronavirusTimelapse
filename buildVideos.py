@@ -1,14 +1,22 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
-buildVideos = {
-    'Total Cases':             {'startDate': '01-16', 'scale': 2},
-    'Total Deaths':            {'startDate': '02-24', 'scale': 4},
-    'Daily Cases':             {'startDate': '01-20', 'scale': 5},
-    'Daily Deaths':            {'startDate': '02-25', 'scale': 10},
-    'Total Cases Per Capita':  {'startDate': '02-12', 'scale': 1},
-    'Total Deaths Per Capita': {'startDate': '02-26', 'scale': 2},
-    'Daily Cases Per Capita':  {'startDate': '02-12', 'scale': 3},
-    'Daily Deaths Per Capita': {'startDate': '02-29', 'scale': 6},
+videoTypes = {
+    'Total County Cases':             {'startDate': '01-16', 'scale': 2,  'index': 1},
+    'Total County Deaths':            {'startDate': '02-24', 'scale': 4,  'index': 2},
+    'Total State Cases':              {'startDate': '01-16', 'scale': .5, 'index': 3},
+    'Total State Deaths':             {'startDate': '02-24', 'scale': 1,  'index': 4},
+    'Daily County Cases':             {'startDate': '01-20', 'scale': 5,  'index': 5},
+    'Daily County Deaths':            {'startDate': '02-25', 'scale': 10, 'index': 6},
+    'Daily State Cases':              {'startDate': '01-20', 'scale': 5,  'index': 7},
+    'Daily State Deaths':             {'startDate': '02-25', 'scale': 10, 'index': 8},
+    'Total County Cases Per Capita':  {'startDate': '02-12', 'scale': 1,  'index': 9},
+    'Total County Deaths Per Capita': {'startDate': '02-26', 'scale': 2,  'index': 10},
+    'Total State Cases Per Capita':   {'startDate': '02-12', 'scale': 2,  'index': 11},
+    'Total State Deaths Per Capita':  {'startDate': '02-26', 'scale': 4,  'index': 12},
+    'Daily County Cases Per Capita':  {'startDate': '02-12', 'scale': 3,  'index': 13},
+    'Daily County Deaths Per Capita': {'startDate': '02-29', 'scale': 6,  'index': 14},
+    'Daily State Cases Per Capita':   {'startDate': '02-12', 'scale': 15, 'index': 15},
+    'Daily State Deaths Per Capita':  {'startDate': '02-29', 'scale': 30, 'index': 16},
 }
 
 casesLookbackDays = 3
@@ -37,7 +45,7 @@ makeDir('videos')
 dirs = ['html', 'images', 'frames']
 for dir in dirs:
     makeDir(dir)
-    for subDir in buildVideos:
+    for subDir in videoTypes:
         makeDir(dir + '/' + subDir)
 
 options = webdriver.ChromeOptions()
@@ -60,33 +68,28 @@ monthMap = {
     12: 'December ',
 }
 
-types = {
-    'Total Cases':             {'index': 1},
-    'Total Deaths':            {'index': 2},
-    'Daily Cases':             {'index': 3},
-    'Daily Deaths':            {'index': 4},
-    'Total Cases Per Capita':  {'index': 5},
-    'Total Deaths Per Capita': {'index': 6},
-    'Daily Cases Per Capita':  {'index': 7},
-    'Daily Deaths Per Capita': {'index': 8},
+dataTypes = {
+    'Total Cases': {},
+    'Total Deaths': {},
+    'Daily Cases': {},
+    'Daily Deaths': {},
+    'Total Cases Per Capita': {},
+    'Total Deaths Per Capita': {},
+    'Daily Cases Per Capita': {},
+    'Daily Deaths Per Capita': {},
 }
-for type in types:
-    types[type]['frameOffset'] = framesPerDay // 2 + 1
-    types[type]['title']  = type.replace('Capita', 'Million People')
-    types[type]['cases']  = type.replace('Deaths', 'Cases')
-    types[type]['deaths'] = type.replace('Cases', 'Deaths')
+
+for type in dataTypes:
+    dataTypes[type]['cases']  = type.replace('Deaths', 'Cases')
+    dataTypes[type]['deaths'] = type.replace('Cases', 'Deaths')
     if type.split(' ')[1] == 'Cases':
-        types[type]['circles'] = 'red'
-        types[type]['labels'] = 'black'
-        types[type]['lookbackDays'] = casesLookbackDays
+        dataTypes[type]['lookbackDays'] = casesLookbackDays
         if type[:6] == 'Daily ':
-            types[type]['deaths'] = types[type]['deaths'] + ' for Cases'
+            dataTypes[type]['deaths'] = dataTypes[type]['deaths'] + ' for Cases'
     else:
-        types[type]['circles'] = 'black'
-        types[type]['labels'] = 'aqua'
-        types[type]['lookbackDays'] = deathsLookbackDays
+        dataTypes[type]['lookbackDays'] = deathsLookbackDays
         if type[:6] == 'Daily ':
-            types[type]['cases'] = types[type]['cases'] + ' for Deaths'
+            dataTypes[type]['cases'] = dataTypes[type]['cases'] + ' for Deaths'
 
 states = {
     'AL': {'name': 'Alabama'},
@@ -160,29 +163,34 @@ with open('static/us_states_centroids.json') as stateFile:
 
 for state in stateData['features']:
     if state['geometry'] is not None:
-        states[state['properties']['state_abbrev']]['x'] = 50 + 2.325 * state['geometry']['coordinates'][0]
-        states[state['properties']['state_abbrev']]['y'] = 49.5 - 3.65 * state['geometry']['coordinates'][1]
-states['HI']['x'] -= 1
-states['HI']['y'] += 1
+        states[state['properties']['state_abbrev']]['labelx']  = 50   + 2.325 * state['geometry']['coordinates'][0]
+        states[state['properties']['state_abbrev']]['labely']  = 49.5 - 3.65  * state['geometry']['coordinates'][1]
+        states[state['properties']['state_abbrev']]['x']       = 50   + 2.325 * state['geometry']['coordinates'][0]
+        states[state['properties']['state_abbrev']]['y']       = 32.1 - 2.345 * state['geometry']['coordinates'][1]
+states['HI']['labelx'] -= 1
+states['HI']['labely'] += 1
+states['WV']['labelx'] -= 1
+states['WV']['labely'] += 2
 states['WV']['x'] -= 1
-states['WV']['y'] += 2
-states['DC']['y'] += 2
-states['MD']['x'] -= 1
-states['MD']['y'] -= 1.5
-states['DE']['x'] += .5
-states['VT']['y'] -= 1
-states['NH']['y'] += 1.5
-states['MA']['y'] -= .9
-states['RI']['x'] += 1.2
-states['CT']['y'] += 1.4
-states['PR']['x'] = 86
-states['PR']['y'] = 72
-states['VI']['x'] = 95
-states['VI']['y'] = 72
-states['GU']['x'] = 57
-states['GU']['y'] = 89
-states['MP']['x'] = 71
-states['MP']['y'] = 89
+states['WV']['y'] += 1
+states['DC']['labely'] += 2
+states['MD']['labelx'] -= 1
+states['MD']['labely'] -= 1.5
+states['MD']['y'] -= .5
+states['DE']['labelx'] += .5
+states['VT']['labely'] -= 1
+states['NH']['labely'] += 1.5
+states['MA']['labely'] -= .9
+states['RI']['labelx'] += 1.2
+states['CT']['labely'] += 1.4
+states['PR']['labelx'] = 86
+states['PR']['labely'] = 72
+states['VI']['labelx'] = 95
+states['VI']['labely'] = 72
+states['GU']['labelx'] = 57
+states['GU']['labely'] = 89
+states['MP']['labelx'] = 71
+states['MP']['labely'] = 89
 
 with open('static/us_counties_centroids.json') as countyFile:
     countyData = json.load(countyFile)
@@ -254,7 +262,7 @@ for day in range(1, 21):
     date = '2020-01-' + str(day).zfill(2)
     dates.append(date)
     data[date] = data['2019-12-31'] # copies reference to object but it's ok because it never changes
-    for type in types:
+    for type in dataTypes:
         data[date][type] = 0
 
 for row in csvData[1:]:
@@ -267,12 +275,12 @@ for row in csvData[1:]:
     if dates[-1] != today:
         dates.append(today)
         data[today] = {'counties': {}, 'states': {}}
-        for type in types:
+        for type in dataTypes:
             data[today][type] = 0
 
     if state not in data[today]['states']:
         data[today]['states'][state] = {}
-        for type in types:
+        for type in dataTypes:
             data[today]['states'][state][type] = 0
 
     data[today]['counties'][key] = {
@@ -281,8 +289,8 @@ for row in csvData[1:]:
     }
 
     # this is the sorted() parameter 'key', not the variable
-    for type in sorted(types, key = typeSort):
-        lookbackDay = dates[-1-types[type]['lookbackDays']]
+    for type in sorted(dataTypes, key = typeSort):
+        lookbackDay = dates[-1-dataTypes[type]['lookbackDays']]
 
         if type[:6] == 'Total ':
             if type[-6:] == 'Capita':
@@ -296,21 +304,21 @@ for row in csvData[1:]:
         else:
             totalType = type.replace('Daily', 'Total')
             subtrahend = data[lookbackDay]['counties'][key][totalType] if key in data[lookbackDay]['counties'] else 0
-            data[today]['counties'][key][type] = max(0, (data[today]['counties'][key][totalType] - subtrahend) / types[type]['lookbackDays'])
+            data[today]['counties'][key][type] = max(0, (data[today]['counties'][key][totalType] - subtrahend) / dataTypes[type]['lookbackDays'])
 
-for type in sorted(types, key = typeSort):
+for type in sorted(dataTypes, key = typeSort):
     totalType = type.replace('Daily', 'Total')
     rawType = type.replace(' Per Capita', '')
 
     for i in range(21, len(dates)):
         today = dates[i]
-        lookbackDay = dates[i-types[type]['lookbackDays']]
+        lookbackDay = dates[i-dataTypes[type]['lookbackDays']]
 
         if type[:6] == 'Daily ' and type[-6:] != 'Capita':
             for state in data[today]['states']:
                 subtrahend = data[lookbackDay]['states'][state][totalType] if state in data[lookbackDay]['states'] else 0
-                data[today]['states'][state][type] = max(0, (data[today]['states'][state][totalType] - subtrahend) / types[type]['lookbackDays'])
-            data[today][type] = max(0, (data[today][totalType] - data[lookbackDay][totalType]) / types[type]['lookbackDays'])
+                data[today]['states'][state][type] = max(0, (data[today]['states'][state][totalType] - subtrahend) / dataTypes[type]['lookbackDays'])
+            data[today][type] = max(0, (data[today][totalType] - data[lookbackDay][totalType]) / dataTypes[type]['lookbackDays'])
 
         if type[-6:] == 'Capita':
             for state in data[today]['states']:
@@ -319,11 +327,8 @@ for type in sorted(types, key = typeSort):
 
         if type[:6] == 'Daily ':
             altType = type.replace('Cases', 'Deaths') if type.split(' ')[1] == 'Cases' else type.replace('Deaths', 'Cases')
-            lookbackDays = types[altType]['lookbackDays']
+            lookbackDays = dataTypes[altType]['lookbackDays']
             data[today][type + ' for ' + altType.split(' ')[1]] = max(0, (data[today][totalType] - data[dates[i-lookbackDays]][totalType]) / lookbackDays)
-
-    if type in buildVideos:
-        types[type]['frameOffset'] -= (dates.index('2020-'+buildVideos[type]['startDate']) - 1) * framesPerDay
 
 missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
@@ -332,6 +337,16 @@ if len(missingList):
     exit()
 
 # --------------------------------------------------- Build Videos --------------------------------------------------- #
+
+for type in videoTypes:
+    videoTypes[type]['frameOffset'] = framesPerDay // 2 + 1 - (dates.index('2020-'+videoTypes[type]['startDate']) - 1) * framesPerDay
+    videoTypes[type]['title']  = type.replace('Capita', 'Million People').replace('County ', '').replace('State ', '')
+    if type.split(' ')[2] == 'Cases':
+        videoTypes[type]['circles'] = 'red'
+        videoTypes[type]['labels'] = 'black'
+    else:
+        videoTypes[type]['circles'] = 'black'
+        videoTypes[type]['labels'] = 'aqua'
 
 with open('static/map.html', 'r') as mapFile:
     map = mapFile.read()
@@ -349,34 +364,44 @@ def buildHtml(day1, day2, type, numer, denom):
     day1 = day1 or day2
     day2 = day2 or day1
     date = day1 if 2*numer<denom else day2
+    dataType = type.replace('County ', '').replace('State ', '')
     fraction = numer/denom
 
     html = map
-    for county in sorted(set(data[day1]['counties']) | set(data[day2]['counties'])):
-        if county not in missing:
-            numDay1 = data[day1]['counties'][county][type] if county in data[day1]['counties'] else 0
-            numDay2 = data[day2]['counties'][county][type] if county in data[day2]['counties'] else 0
-            numFinal = weightedAverage(numDay1, numDay2, fraction)
-            if numFinal:
-                r = sqrt(numFinal) * buildVideos[type]['scale'] / 100
-                html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + types[type]['circles'] + '"></circle>\n'
-    html += '\n</svg>\n\n'
+
+    if type.split(' ')[1] == 'County':
+        for county in sorted(set(data[day1]['counties']) | set(data[day2]['counties'])):
+            if county not in missing:
+                numDay1 = data[day1]['counties'][county][dataType] if county in data[day1]['counties'] else 0
+                numDay2 = data[day2]['counties'][county][dataType] if county in data[day2]['counties'] else 0
+                numFinal = weightedAverage(numDay1, numDay2, fraction)
+                if numFinal:
+                    r = sqrt(numFinal) * videoTypes[type]['scale'] / 100
+                    html += '<circle cx="' + str(counties[county]['x']) + '" cy="' + str(counties[county]['y']) + '" r="' + str(r) + '" class="' + videoTypes[type]['circles'] + '"></circle>\n'
+        html += '\n</svg>\n\n'
 
     for state in sorted(set(data[day1]['states']) | set(data[day2]['states'])):
-        numDay1 = data[day1]['states'][state][type] if state in data[day1]['states'] else 0
-        numDay2 = data[day2]['states'][state][type] if state in data[day2]['states'] else 0
+        numDay1 = data[day1]['states'][state][dataType] if state in data[day1]['states'] else 0
+        numDay2 = data[day2]['states'][state][dataType] if state in data[day2]['states'] else 0
         numFinal = roundHalfUp(weightedAverage(numDay1, numDay2, fraction))
         if numFinal:
-            html += '<div class="point svelte-3fv2ao" style="left: '+ str(states[state]['x']) + '%; top: ' + str(states[state]['y']) + '%">'
-            html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
-            html += '<span class="label ' + types[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + types[type]['labels'] + '">' + formatNum(numFinal) + '</span></div></div>\n'
+            if type.split(' ')[1] == 'County':
+                html += '<div class="point svelte-3fv2ao" style="left: '+ str(states[state]['labelx']) + '%; top: ' + str(states[state]['labely']) + '%">'
+                html += '<div class="labeled-count svelte-1krny27" style="top: -0.65em;">'
+                html += '<span class="label ' + videoTypes[type]['labels'] + '">' + states[state]['displayName'] + '</span><span class="count ' + videoTypes[type]['labels'] + '">' + formatNum(numFinal) + '</span></div></div>\n'
+            elif state not in ['PR', 'VI', 'GU', 'MP']:
+                r = sqrt(numFinal) * videoTypes[type]['scale'] / 100
+                html += '<circle cx="' + str(states[state]['x']) + '" cy="' + str(states[state]['y']) + '" r="' + str(r) + '" class="' + videoTypes[type]['circles'] + '"></circle>\n'
 
-    html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + types[type]['title'] + '</span></div>\n'
+    if type.split(' ')[1] == 'State':
+        html += '\n</svg>\n\n'
+
+    html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + videoTypes[type]['title'] + '</span></div>\n'
     if type[:6] == 'Daily ':
-        html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(types[type]['lookbackDays']) + '-Day Average</span></div>\n'
+        html += '\n<div class="point svelte-3fv2ao" style="left: 45%; top: 7.5%; text-align: center"><span class="label" style="font-size: 1.25em; font-weight: bold; position: absolute; width: 100%; left: -50%">Rolling ' + str(dataTypes[dataType]['lookbackDays']) + '-Day Average</span></div>\n'
     html += '\n<div class="point svelte-3fv2ao" style="left: 77.7%; top: 4%; text-align: center"><span class="label" style="font-size: 2em; font-weight: bold; position: absolute; width: 100%; left: -50%">' + monthMap[int(date[5:7])] + str(int(date[8:10])) + '</span></div>\n'
-    html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">'    + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]['cases']],  data[day2][types[type]['cases']],  fraction))) + '</span></div>\n'
-    html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(roundHalfUp(weightedAverage(data[day1][types[type]['deaths']], data[day2][types[type]['deaths']], fraction))) + '</span></div>\n\n</div></div>'
+    html += '<div class="point svelte-3fv2ao" style="left: 64%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Cases</span><span class="count red" style="font-size: 2em">'    + formatNum(roundHalfUp(weightedAverage(data[day1][dataTypes[dataType]['cases']],  data[day2][dataTypes[dataType]['cases']],  fraction))) + '</span></div>\n'
+    html += '<div class="point svelte-3fv2ao" style="left: 79%; top: 9%; width: 200px; text-align: center"><span class="label black" style="font-size: 2em">Deaths</span><span class="count black" style="font-size: 2em">' + formatNum(roundHalfUp(weightedAverage(data[day1][dataTypes[dataType]['deaths']], data[day2][dataTypes[dataType]['deaths']], fraction))) + '</span></div>\n\n</div></div>'
 
     return html
 
@@ -426,11 +451,11 @@ try:
 except:
     lastValues = {}
 
-for type in buildVideos:
+for type in videoTypes:
     if type not in lastValues:
         lastValues[type] = {'params': {}, 'modified': True}
 
-    params = {'framesPerDay': framesPerDay, 'startDate': buildVideos[type]['startDate']}
+    params = {'framesPerDay': framesPerDay, 'startDate': videoTypes[type]['startDate']}
     if lastValues[type]['params'] != params:
         for filename in os.listdir('frames/' + type):
             os.remove('frames/' + type + '/' + filename)
@@ -451,7 +476,7 @@ for type in buildVideos:
                 decimal = f'{j/framesPerDay:0.3f}'[1:]
                 htmlFilename = 'html/' + type + '/' + today + decimal + '.html'
                 imageFilename = 'images/' + type + '/' + today + decimal + '.png'
-            frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
+            frame = videoTypes[type]['frameOffset'] + (i-1)*framesPerDay + j
             frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
             buildFiles(buildHtml(today, tomorrow, type, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type)
             if not tomorrow and not j:
@@ -465,7 +490,7 @@ for type in buildVideos:
                 json.dump(lastValues, valuesFile)
         copyfile(frameFilename, copyFilename)
 
-    videoFilename = 'videos/' + str(types[type]['index']) + ' ' + type + '.mp4'
+    videoFilename = 'videos/' + str(videoTypes[type]['index']) + ' ' + type + '.mp4'
     if lastValues[type]['modified'] or not os.path.exists(videoFilename):
         os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "' + videoFilename + '" -y')
         lastValues[type]['modified'] = False
