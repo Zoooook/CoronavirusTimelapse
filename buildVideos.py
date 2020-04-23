@@ -345,7 +345,7 @@ def roundHalfUp(num):
 def formatNum(num):
     return f'{num:,}'
 
-def buildHtml(day1, day2, numer, denom):
+def buildHtml(day1, day2, type, numer, denom):
     day1 = day1 or day2
     day2 = day2 or day1
     date = day1 if 2*numer<denom else day2
@@ -453,7 +453,7 @@ for type in buildVideos:
                 imageFilename = 'images/' + type + '/' + today + decimal + '.png'
             frame = types[type]['frameOffset'] + (i-1)*framesPerDay + j
             frameFilename = 'frames/' + type + '/frame' + str(frame).zfill(5) + '.png'
-            buildFiles(buildHtml(today, tomorrow, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type)
+            buildFiles(buildHtml(today, tomorrow, type, j, framesPerDay), htmlFilename, imageFilename, frameFilename, frame, j, type)
             if not tomorrow and not j:
                 break
 
