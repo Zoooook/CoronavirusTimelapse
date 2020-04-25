@@ -3,14 +3,14 @@
 videoTypes = {
     'Total County Cases':             {'startDate': '01-16', 'scale': 2,  'index': '01'},
     'Total County Deaths':            {'startDate': '02-24', 'scale': 4,  'index': '02'},
-    'Total State Cases':              {'startDate': '01-16', 'scale': .5, 'index': '03'},
-    'Total State Deaths':             {'startDate': '02-24', 'scale': 1,  'index': '04'},
+    'Total State Cases':              {'startDate': '01-16', 'scale': 1,  'index': '03'},
+    'Total State Deaths':             {'startDate': '02-24', 'scale': 2,  'index': '04'},
     'Daily County Cases':             {'startDate': '01-20', 'scale': 5,  'index': '05'},
     'Daily County Deaths':            {'startDate': '02-25', 'scale': 10, 'index': '06'},
     'Daily State Cases':              {'startDate': '01-20', 'scale': 5,  'index': '07'},
     'Daily State Deaths':             {'startDate': '02-25', 'scale': 10, 'index': '08'},
-    'Total County Cases Per Capita':  {'startDate': '02-12', 'scale': 1,  'index': '09'},
-    'Total County Deaths Per Capita': {'startDate': '02-26', 'scale': 2,  'index': '10'},
+    'Total County Cases Per Capita':  {'startDate': '02-12', 'scale': .5, 'index': '09'},
+    'Total County Deaths Per Capita': {'startDate': '02-26', 'scale': 1,  'index': '10'},
     'Total State Cases Per Capita':   {'startDate': '02-12', 'scale': 2,  'index': '11'},
     'Total State Deaths Per Capita':  {'startDate': '02-26', 'scale': 4,  'index': '12'},
     'Daily County Cases Per Capita':  {'startDate': '02-12', 'scale': 3,  'index': '13'},
@@ -335,6 +335,12 @@ if len(missingList):
     for key in missingList:
         print('Missing', key)
     exit()
+
+for date in dates:
+    for county in data[date]['counties']:
+        if data[date]['counties'][county]['Daily Cases Per Capita'] >= 2000:
+            print(date, data[date]['counties'][county]['Daily Cases Per Capita'], county)
+    print(flush = True)
 
 # --------------------------------------------------- Build Videos --------------------------------------------------- #
 
