@@ -336,12 +336,6 @@ if len(missingList):
         print('Missing', key)
     exit()
 
-for date in dates:
-    for county in data[date]['counties']:
-        if data[date]['counties'][county]['Daily Cases Per Capita'] >= 2000:
-            print(date, data[date]['counties'][county]['Daily Cases Per Capita'], county)
-    print(flush = True)
-
 # --------------------------------------------------- Build Videos --------------------------------------------------- #
 
 for type in videoTypes:
