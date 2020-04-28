@@ -19,8 +19,8 @@ videoTypes = {
     'Daily State Deaths Per Capita':  {'startDate': '02-29', 'scale': 30, 'index': '16'},
 }
 
-casesLookbackDays = 3
-deathsLookbackDays = 5
+casesLookbackDays = 7
+deathsLookbackDays = 7
 
 framesPerDay = 12
 daysPerSecond = 2
