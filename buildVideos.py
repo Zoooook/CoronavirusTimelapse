@@ -41,7 +41,6 @@ def makeDir(dir):
     try: os.mkdir(dir)
     except: pass
 
-makeDir('videos')
 dirs = ['html', 'images', 'frames']
 for dir in dirs:
     makeDir(dir)
@@ -490,7 +489,7 @@ for type in videoTypes:
                 json.dump(lastValues, valuesFile)
         copyfile(frameFilename, copyFilename)
 
-    videoFilename = 'videos/' + videoTypes[type]['index'] + ' ' + type + '.mp4'
+    videoFilename = 'videoTypes[type]['index'] + ' ' + type + '.mp4'
     if lastValues[type]['modified'] or not os.path.exists(videoFilename):
         os.system('ffmpeg -f image2 -r ' + str(fps) + ' -i "frames/' + type + '/frame%05d.png" -r ' + str(fps) + ' -c:a copy -c:v libx264 -crf 16 -preset veryslow "' + videoFilename + '" -y')
         lastValues[type]['modified'] = False

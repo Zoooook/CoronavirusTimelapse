@@ -1,3 +1,5 @@
+Click any of the .mp4 files and then Download to watch the videos. I try to keep them relatively up to date.
+
 This script uses county-level [New York Times data](https://github.com/nytimes/covid-19-data) to build timelapse videos for various metrics of the Coronavirus spread across the U.S., using a map format modified from an old version of [their page](https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html). New York City dominates the non-Per-Capita maps because the New York Times combines the 5 boroughs into a single mega-county.
 
 The data of course only represent confirmed cases and deaths, not true cases and deaths. The areas of the circles are proportional to the number of people represented, although the scale differs between different videos. With default parameters, a given number of deaths will produce a circle with twice the radius or 4 times the area the same number of cases would in the same category. The script uses a rolling average to smooth out values in the Daily video types. It uses linear interpolation to transition between days.
