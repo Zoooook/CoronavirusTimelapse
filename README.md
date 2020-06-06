@@ -1,4 +1,4 @@
-Click any of the .mp4 files and then Download to watch the videos. I try to keep them relatively up to date.
+Click any of the .mp4 files and then Download to watch the videos. I try to keep them relatively up to date. EDIT: I may not worry about updating these in the future, as NYTimes data is [not terribly accurate](https://imgur.com/a/oNNDlzl), meaning they are only using the date of reporting by the state, and not adjusting it for date of discovery or date of death.
 
 This script uses county-level [New York Times data](https://github.com/nytimes/covid-19-data) to build timelapse videos for various metrics of the Coronavirus spread across the U.S., using a map format modified from an old version of [their page](https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html). New York City dominates the non-Per-Capita maps because the New York Times combines the 5 boroughs into a single mega-county.
 
