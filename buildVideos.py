@@ -1,8 +1,8 @@
 # ---------------------------------------------------- User Input ---------------------------------------------------- #
 
 videoTypes = {
-    'Total County Cases':             {'startDate': '01-16', 'scale': 2,  'index': '01'},
-    'Total County Deaths':            {'startDate': '02-24', 'scale': 4,  'index': '02'},
+    'Total County Cases':             {'startDate': '01-16', 'scale': 1,  'index': '01'},
+    'Total County Deaths':            {'startDate': '02-24', 'scale': 2,  'index': '02'},
     'Total State Cases':              {'startDate': '01-16', 'scale': 1,  'index': '03'},
     'Total State Deaths':             {'startDate': '02-24', 'scale': 2,  'index': '04'},
     'Daily County Cases':             {'startDate': '01-20', 'scale': 5,  'index': '05'},
@@ -334,7 +334,7 @@ missingList = sorted(filter(lambda x: x[2:] != ':Unknown', list(missing)))
 if len(missingList):
     for key in missingList:
         print('Missing', key)
-    exit()
+#    exit()
 
 # --------------------------------------------------- Build Videos --------------------------------------------------- #
 
